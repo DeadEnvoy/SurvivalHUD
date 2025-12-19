@@ -1,0 +1,14 @@
+/***** Translation provided by [ZTX] ZeatiaX (https://steamcommunity.com/id/zeatiax) *****/
+Tooltip_FR = {
+    Tooltip_SH_Weight = "Poids",
+    Tooltip_SH_Weight_Value = "kg",
+    Tooltip_SH_Fatigue = "Fatigue",
+    Tooltip_SH_Thirst = "Soif",
+    Tooltip_SH_Hunger = "Faim",
+    Tooltip_SH_Temperature = "Temperature corporelle",
+    Tooltip_SH_Infection = "Infection",
+    Tooltip_SH_Sickness = "Maladie",
+    Tooltip_SH_Health = "Vie",
+    Tooltip_SH_Endurance = "Endurance",
+    Tooltip_SH_None = "Rien"
+}

@@ -1,0 +1,13 @@
+Tooltip_DE = {
+    Tooltip_SH_Weight = "Gewicht",
+    Tooltip_SH_Weight_Value = "kg",
+    Tooltip_SH_Fatigue = "Erschöpfung",
+    Tooltip_SH_Thirst = "Durst",
+    Tooltip_SH_Hunger = "Sättigung",
+    Tooltip_SH_Temperature = "Körpertemperatur",
+    Tooltip_SH_Infection = "Infektion",
+    Tooltip_SH_Sickness = "Krankheit",
+    Tooltip_SH_Health = "Gesundheit",
+    Tooltip_SH_Endurance = "Ausdauer",
+    Tooltip_SH_None = "Keine"
+}
