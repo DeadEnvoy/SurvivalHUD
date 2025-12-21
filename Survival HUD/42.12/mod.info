@@ -1,7 +1,9 @@
-name=[B41] Survival HUD (Legacy)
+name=[B42] Survival HUD (Legacy)
 description=A functional HUD displaying the player’s core needs in DayZ style.
 id=SurvivalHUD
 author=DeadEnvoy
-poster=poster.png
-versionMax=42.0.0
+icon=icon_12.png
+poster=poster_12.png
+versionMin=42.12.3
+versionMax=42.12.3
 modversion=0.8.7
