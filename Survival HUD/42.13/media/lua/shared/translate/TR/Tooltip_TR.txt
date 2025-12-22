@@ -1,13 +1,13 @@
 Tooltip_TR = {
-    Tooltip_SH_Weight = "Ağırlık",
-    Tooltip_SH_Weight_Value = "kg",
-    Tooltip_SH_Fatigue = "Yorgunluk",
-    Tooltip_SH_Thirst = "Susuzluk",
-    Tooltip_SH_Hunger = "Doygunluk",
-    Tooltip_SH_Temperature = "Vücut Sıcaklığı",
-    Tooltip_SH_Infection = "Enfeksiyon",
-    Tooltip_SH_Sickness = "Hastalık",
-    Tooltip_SH_Health = "Sağlık",
-    Tooltip_SH_Endurance = "Dayanıklılık",
-    Tooltip_SH_None = "Yok"
+    Tooltip_HUD_Weight = "Ağırlık",
+    Tooltip_HUD_Weight_Value = "kg",
+    Tooltip_HUD_Fatigue = "Yorgunluk",
+    Tooltip_HUD_Thirst = "Susuzluk",
+    Tooltip_HUD_Hunger = "Doygunluk",
+    Tooltip_HUD_Temperature = "Vücut Sıcaklığı",
+    Tooltip_HUD_Infection = "Enfeksiyon",
+    Tooltip_HUD_Sickness = "Hastalık",
+    Tooltip_HUD_Health = "Sağlık",
+    Tooltip_HUD_Endurance = "Dayanıklılık",
+    Tooltip_HUD_None = "Yok"
 }

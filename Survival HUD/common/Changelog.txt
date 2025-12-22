@@ -1,0 +1,12 @@
+[ 1.0.0 ]
+- The mod's logic and structure have been completely rewritten.
+- All status checks and updates have been optimized.
+- The UI is now more responsive and robust in various in-game situations.
+- The infection icon now reflects the character's PERCEPTION of being infected (which can be affected by perks or corpse sickness).
+- Icons are now moved above the Hotbar/Dashboard if they still overlap it at their minimum size.
+- Mini Health Panel has been added as a dependency and integrated into the UI.
+- The information displayed in the Mini Health Panel's tooltip has been changed.
+- Hovering over the icons while aiming now hides them completely.
+- The sidebar's health icon now changes to the skills icon when the player is not injured.
+- Numerous other minor fixes and improvements.
+[ ----- ]

@@ -1,13 +1,13 @@
 Tooltip_ES = {
-    Tooltip_SH_Weight = "Peso",
-    Tooltip_SH_Weight_Value = "kg",
-    Tooltip_SH_Fatigue = "Fatiga",
-    Tooltip_SH_Thirst = "Sed",
-    Tooltip_SH_Hunger = "Saciedad",
-    Tooltip_SH_Temperature = "Temperatura corporal",
-    Tooltip_SH_Infection = "Infección",
-    Tooltip_SH_Sickness = "Enfermedad",
-    Tooltip_SH_Health = "Salud",
-    Tooltip_SH_Endurance = "Resistencia",
-    Tooltip_SH_None = "Ninguno"
+    Tooltip_HUD_Weight = "Peso",
+    Tooltip_HUD_Weight_Value = "kg",
+    Tooltip_HUD_Fatigue = "Fatiga",
+    Tooltip_HUD_Thirst = "Sed",
+    Tooltip_HUD_Hunger = "Saciedad",
+    Tooltip_HUD_Temperature = "Temperatura corporal",
+    Tooltip_HUD_Infection = "Infección",
+    Tooltip_HUD_Sickness = "Enfermedad",
+    Tooltip_HUD_Health = "Salud",
+    Tooltip_HUD_Endurance = "Resistencia",
+    Tooltip_HUD_None = "Ninguno"
 }
