@@ -14,3 +14,8 @@
 [ 1.0.1 ]
 - Fixed compatibility with Project Summer Car.
 [ ----- ]
+
+[ 1.0.2 ]
+- Mini Health Panel now hides when the character has no injuries.
+- Fixed an issue where the cheat status panel did not update after death.
+[ ----- ]
