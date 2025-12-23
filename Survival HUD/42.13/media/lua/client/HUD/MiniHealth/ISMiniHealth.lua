@@ -22,7 +22,6 @@ end
 
 function ISMiniHealth:checkNewResolution()
     self:setX(OVERRIDE_X); self:setY(getCore():getScreenHeight() - self.height - OVERRIDE_Y)
-    self.moveWithMouse = false
 end
 
 function ISMiniHealth:createChildren()
@@ -36,26 +35,33 @@ function ISMiniHealth:addSettingsPanel()
 end
 
 function ISMiniHealth:writeConfig() end
-function ISMiniHealth:initConfig() end
+
+function ISMiniHealth:initConfig()
+    self.alwaysShow = false; self.moveWithMouse = false
+end
 
 function ISMiniHealth:onMouseDown(x, y) return false end
 function ISMiniHealth:onMouseMove(dx, dy) self.dragging = false end
 
 function ISMiniHealth:prerender()
-    local y_offset = 60
-    if ISEnduranceBarUI and ISEnduranceBarUI.instance then
+    local y_offset = 60; if ISEnduranceBarUI and ISEnduranceBarUI.instance then
         if ISEnduranceBarUI.instance.minimalMode or not ISEnduranceBarUI.instance:isReallyVisible() then
             y_offset = 20
         end
     end
     self:setY(getCore():getScreenHeight() - self:getHeight() - y_offset)
 
-    self:setX(20)
-    if ISEquippedItem and ISEquippedItem.instance and self:checkUICollision(ISEquippedItem.instance) then
+    self:setX(20); if ISEquippedItem and ISEquippedItem.instance and self:checkUICollision(ISEquippedItem.instance) then
         self:setX(80)
     end
 
-    self.alpha = 1
+    if self:isMouseOver() then
+        self.isHover = true
+        self.hideTimer = 30
+        self.alpha = 1
+    else
+        self.isHover = false
+    end
     
     if self.backgroundTex and self.backgroundTex[self.isFemale] then
         self:drawTexture(self.backgroundTex[self.isFemale], 0, 0, 0.5 * self.alpha, 0, 0, 0)
