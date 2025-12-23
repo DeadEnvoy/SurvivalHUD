@@ -347,7 +347,8 @@ function ISSimpleStatusUI:updateLayout(forceInfVis, forceSickVis)
     end
     
     local hotbar = getPlayerHotbar(player:getPlayerNum())
-    local dash, pscDash = getPlayerVehicleDashboard(player:getPlayerNum()), getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(player:getPlayerNum()) or nil
+    local dash = getPlayerVehicleDashboard(player:getPlayerNum())
+    local pscDash = getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(player:getPlayerNum()) or nil
     local vehicle = player:getVehicle()
 
     ISSimpleStatusUI.IconSize = ISSimpleStatusUI.BaseIconSize
@@ -530,7 +531,8 @@ function ISSimpleStatusUI:render()
     if not player then return end
     
     local hotbar = getPlayerHotbar(player:getPlayerNum())
-    local dash, pscDash = getPlayerVehicleDashboard(player:getPlayerNum()), getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(player:getPlayerNum()) or nil
+    local dash = getPlayerVehicleDashboard(player:getPlayerNum())
+    local pscDash = getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(player:getPlayerNum()) or nil
     
     local anyVisible = (hotbar and hotbar:isReallyVisible()) or (dash and dash:isReallyVisible()) or (pscDash and pscDash:isReallyVisible())
     if not anyVisible then
@@ -871,7 +873,8 @@ function ISEnduranceBarUI:render()
     end
 
     local hotbar = getPlayerHotbar(player:getPlayerNum())
-    local dash, pscDash = getPlayerVehicleDashboard(player:getPlayerNum()), getPlayerVehicleDashboardReplacer(player:getPlayerNum())
+    local dash = getPlayerVehicleDashboard(player:getPlayerNum())
+    local pscDash = getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(player:getPlayerNum()) or nil
     
     local anyVisible = (hotbar and hotbar:isReallyVisible()) or (dash and dash:isReallyVisible()) or (pscDash and pscDash:isReallyVisible())
     if not anyVisible then
