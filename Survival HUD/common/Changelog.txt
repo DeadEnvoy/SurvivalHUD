@@ -10,3 +10,7 @@
 - The sidebar's health icon now changes to the skills icon when the player is not injured.
 - Numerous other minor fixes and improvements.
 [ ----- ]
+
+[ 1.0.1 ]
+- Fixed compatibility with Project Summer Car.
+[ ----- ]
