@@ -3,8 +3,15 @@ require "ISUI/ISVersionWaterMark"
 local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.NewSmall)
 
 WaterMarkUI.render = function(self)
+    self.chr = getPlayer()
+    if not self.chr then return end
+
     if self.revButton then
         self.revButton:setVisible(false)
+    end
+
+    if self.javaObject then
+        self.javaObject:setConsumeMouseEvents(false)
     end
 
     ISPanel.render(self)
@@ -75,9 +82,7 @@ WaterMarkUI.render = function(self)
         y = y - FONT_HGT_SMALL - 3
     end
 
-    if y == (-FONT_HGT_SMALL - 3) then
-        if self:isVisible() then self:setVisible(false) end
-    else
-        if not self:isVisible() then self:setVisible(true) end
+    if not self:isVisible() then
+        self:setVisible(true)
     end
 end
