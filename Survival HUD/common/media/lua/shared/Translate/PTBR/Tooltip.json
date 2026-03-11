@@ -1,0 +1,15 @@
+{
+    "_comment": "Translation provided by Guicsr_ (https://steamcommunity.com/profiles/76561199071148613)",
+
+    "Tooltip_HUD_Weight": "Peso",
+    "Tooltip_HUD_Weight_Value": "kg",
+    "Tooltip_HUD_Fatigue": "Fadiga",
+    "Tooltip_HUD_Thirst": "Sede",
+    "Tooltip_HUD_Hunger": "Saciedade",
+    "Tooltip_HUD_Temperature": "Temperatura Corporal",
+    "Tooltip_HUD_Infection": "Infecção",
+    "Tooltip_HUD_Sickness": "Doença",
+    "Tooltip_HUD_Health": "Saúde",
+    "Tooltip_HUD_Endurance": "Resistência",
+    "Tooltip_HUD_None": "Nenhum"
+}

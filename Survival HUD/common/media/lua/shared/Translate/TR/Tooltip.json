@@ -1,0 +1,13 @@
+{
+    "Tooltip_HUD_Weight": "Ağırlık",
+    "Tooltip_HUD_Weight_Value": "kg",
+    "Tooltip_HUD_Fatigue": "Yorgunluk",
+    "Tooltip_HUD_Thirst": "Susuzluk",
+    "Tooltip_HUD_Hunger": "Doygunluk",
+    "Tooltip_HUD_Temperature": "Vücut Sıcaklığı",
+    "Tooltip_HUD_Infection": "Enfeksiyon",
+    "Tooltip_HUD_Sickness": "Hastalık",
+    "Tooltip_HUD_Health": "Sağlık",
+    "Tooltip_HUD_Endurance": "Dayanıklılık",
+    "Tooltip_HUD_None": "Yok"
+}

@@ -1,0 +1,13 @@
+{
+    "Tooltip_HUD_Weight": "Peso",
+    "Tooltip_HUD_Weight_Value": "kg",
+    "Tooltip_HUD_Fatigue": "Fatiga",
+    "Tooltip_HUD_Thirst": "Sed",
+    "Tooltip_HUD_Hunger": "Saciedad",
+    "Tooltip_HUD_Temperature": "Temperatura corporal",
+    "Tooltip_HUD_Infection": "Infección",
+    "Tooltip_HUD_Sickness": "Enfermedad",
+    "Tooltip_HUD_Health": "Salud",
+    "Tooltip_HUD_Endurance": "Resistencia",
+    "Tooltip_HUD_None": "Ninguno"
+}
