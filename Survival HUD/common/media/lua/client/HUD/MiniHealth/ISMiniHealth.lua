@@ -40,8 +40,56 @@ function ISMiniHealth:initConfig()
     self.alwaysShow = false; self.moveWithMouse = false
 end
 
-function ISMiniHealth:onMouseDown(x, y) return false end
-function ISMiniHealth:onMouseMove(dx, dy) self.dragging = false end
+function ISMiniHealth:isMouseOver()
+    if not self:getIsVisible() then return false end
+    if not self.javaObject:isMouseOver() then return false end
+    
+    local mx = getMouseX()
+    local my = getMouseY()
+    local ui = UIManager.getUI()
+    
+    for i = ui:size() - 1, 0, -1 do
+        local el = ui:get(i)
+        if el == self.javaObject then
+            return true
+        end
+        if el:isVisible() and el:isPointOver(mx, my) then
+            if l:isConsumeMouseEvents() then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+function ISMiniHealth:onMouseDown(x, y)
+    return self:isMouseOver()
+end
+
+function ISMiniHealth:onMouseUp(x, y)
+    if not self:isMouseOver() then return false end
+    if not self.player_isDead then
+        getSoundManager():playUISound("UISelectListItem")
+        self.infopanel:toggleView(getText("IGUI_XP_Health"))
+    end
+    return true
+end
+
+function ISMiniHealth:onRightMouseDown(x, y)
+    return self:isMouseOver()
+end
+
+function ISMiniHealth:onRightMouseUp(x, y)
+    if not self:isMouseOver() then return false end
+    if not self.player_isDead then
+        self:showContextMenu(self, x, y)
+    end
+    return true
+end
+
+function ISMiniHealth:onMouseMove(dx, dy)
+    self.dragging = false; return self:isMouseOver()
+end
 
 function ISMiniHealth:prerender()
     local y_offset = 60; if ISEnduranceBarUI and ISEnduranceBarUI.instance then
