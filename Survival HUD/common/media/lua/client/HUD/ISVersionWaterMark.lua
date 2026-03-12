@@ -16,10 +16,31 @@ WaterMarkUI.render = function(self)
 
     ISPanel.render(self)
 
-    self:setWidth(200); self:setX(getCore():getScreenWidth() - 10 - self.width); self:setY(getCore():getScreenHeight() - 100)
+    self:setWidth(200); self:setX(getCore():getScreenWidth() - 10 - self.width); self:setY(getCore():getScreenHeight() - 90)
 
     local y = -FONT_HGT_SMALL - 3
     local alpha, width = 0.3, self.width
+
+    -- self:drawTextRight("x: ".. math.floor(self.chr:getX()) .. " , y: " .. math.floor(self.chr:getY()) .. ", z: " .. math.floor(self.chr:getZ()), width, y, 1, 1, 1, 1, UIFont.NewSmall)
+    -- y = y - FONT_HGT_SMALL - 3
+
+    if isClient() then
+        local statusData = getMPStatus()
+        if tonumber(getMaxPlayers()) > 32 then
+            self:drawTextRight(getText("UI_MaxPlayers_Notification"), width, y, 1, 1, 1, 1, UIFont.NewSmall)
+            y = y - FONT_HGT_SMALL - 3
+        end
+
+        if isShowServerInfo() then
+            self:drawTextRight(getText("UI_ServerTime", statusData.serverTime, statusData.lastPing), width, y, 1, 1, 1, 1, UIFont.NewSmall)
+            y = y - FONT_HGT_SMALL - 3
+        end
+
+        if isShowConnectionInfo() then
+            self:drawTextRight("\"" .. getServerName() .. "\" (" .. getServerIP() .. ":" .. getServerPort() .. ")", width, y, 1, 1, 1, 1, UIFont.NewSmall)
+            y = y - FONT_HGT_SMALL - 3
+        end
+    end
     
     if ISBuildMenu and ISBuildMenu.cheat then
         self:drawTextRight(getText("IGUI_CheatPanel_BuildCheat"), width, y, 1, 1, 1, alpha, UIFont.NewSmall)
