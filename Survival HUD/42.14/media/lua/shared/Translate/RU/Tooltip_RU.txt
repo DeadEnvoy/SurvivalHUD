@@ -1,0 +1,13 @@
+Tooltip_RU = {
+    Tooltip_HUD_Weight = "Вес",
+    Tooltip_HUD_Weight_Value = "кг",
+    Tooltip_HUD_Fatigue = "Усталость",
+    Tooltip_HUD_Thirst = "Жажда",
+    Tooltip_HUD_Hunger = "Сытость",
+    Tooltip_HUD_Temperature = "Температура тела",
+    Tooltip_HUD_Infection = "Заражение",
+    Tooltip_HUD_Sickness = "Болезнь",
+    Tooltip_HUD_Health = "Здоровье",
+    Tooltip_HUD_Endurance = "Выносливость",
+    Tooltip_HUD_None = "Отсутствует"
+}

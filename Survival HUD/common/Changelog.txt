@@ -19,3 +19,11 @@
 - Mini Health Panel now hides when the character has no injuries.
 - Fixed an issue where the cheat status panel did not update after death.
 [ ----- ]
+
+[ 1.1.0 ]
+- All localization files migrated to the new format.
+- Mini Health Panel is now always shown when aiming with a melee weapon and having at least one muscle strain.
+- Fixed Mini Health Panel incorrectly consuming mouse clicks.
+- Added display of additional information for multiplayer.
+- Fixed incorrect tooltip display.
+[ ----- ]
