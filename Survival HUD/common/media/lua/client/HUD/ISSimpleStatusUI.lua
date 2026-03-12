@@ -517,12 +517,6 @@ function ISSimpleStatusUI:prerender()
     self:setVisible(true)
 end
 
-function ISSimpleStatusUI:isMouseOverSelf()
-    local mx, my = getMouseX(), getMouseY()
-    local ax, ay = self:getAbsoluteX(), self:getAbsoluteY()
-    return mx >= ax and mx < ax + self:getWidth() and my >= ay and my < ay + self:getHeight()
-end
-
 function ISSimpleStatusUI:render()
     if ISSimpleStatusUI.SkipRender > 0 then
         ISSimpleStatusUI.SkipRender = ISSimpleStatusUI.SkipRender - 1
@@ -550,7 +544,7 @@ function ISSimpleStatusUI:render()
     end
     
     local isAiming = player:isAiming()
-    local isMouseOver = self:isMouseOverSelf()
+    local isMouseOver = self:isMouseOverNotBlocked()
     if isAiming and isMouseOver then
         self.fade:setFadeIn(false)
     else
@@ -644,24 +638,76 @@ function ISSimpleStatusUI:render()
         end
     end
     
-    if globalAlpha > 0.9 and self:isMouseOverSelf() and not player:isAiming() then
-        local mx = self:getMouseX()
-        local my = self:getMouseY()
+    if globalAlpha > 0.9 and not player:isAiming() then
+        local anyHovered = false;
         for type, pos in pairs(self.iconPos) do
-            if mx >= pos.x and mx <= pos.x + ISSimpleStatusUI.IconSize and my >= pos.y and my <= pos.y + ISSimpleStatusUI.IconSize then
-                if not ((type == "infection" and not infVis) or (type == "sickness" and not sickVis)) then
-                    self:prepareTooltip(type, vals[type])
-                    self.tooltipUI.currentOwner = "icons"
+            local canShow = false;
+            if type == "health" then
+                canShow = self:isMouseOverNotBlocked(pos.x, pos.y, ISSimpleStatusUI.IconSize, ISSimpleStatusUI.IconSize);
+            else
+                local mx, my = self:getMouseX(), self:getMouseY();
+                if mx >= pos.x and mx <= pos.x + ISSimpleStatusUI.IconSize and my >= pos.y and my <= pos.y + ISSimpleStatusUI.IconSize then
+                    canShow = self:isMouseOver();
                 end
-                break
             end
+
+            if canShow then
+                if not ((type == "infection" and not infVis) or (type == "sickness" and not sickVis)) then
+                    self:prepareTooltip(type, vals[type]);
+                    self.tooltipUI.currentOwner = "icons";
+                    anyHovered = true;
+                end
+                break;
+            end
+        end
+
+        if not anyHovered and self.tooltipUI and self.tooltipUI.currentOwner == "icons" then
+            self.tooltipUI:setVisible(false);
+            self.tooltipUI.currentOwner = nil;
         end
     else
         if self.tooltipUI and self.tooltipUI.currentOwner == "icons" then
-            self.tooltipUI:setVisible(false)
-            self.tooltipUI.currentOwner = nil
+            self.tooltipUI:setVisible(false);
+            self.tooltipUI.currentOwner = nil;
         end
     end
+end
+
+function ISSimpleStatusUI:isMouseOverNotBlocked(x, y, w, h)
+    if not self:isReallyVisible() then return false; end
+    local mx, my = getMouseX(), getMouseY();
+    
+    local absX = self:getAbsoluteX();
+    local absY = self:getAbsoluteY();
+    local absW = self:getWidth();
+    local absH = self:getHeight();
+
+    if x and y and w and h then
+        absX = absX + x;
+        absY = absY + y;
+        absW = w;
+        absH = h;
+    end
+    
+    if mx < absX or mx >= absX + absW or
+       my < absY or my >= absY + absH then
+        return false;
+    end
+
+    local uis = UIManager.getUI();
+    for i = uis:size() - 1, 0, -1 do
+        local other = uis:get(i);
+        if other == self.javaObject then break; end
+        
+        if other:isVisible() and other:isPointOver(mx, my) then
+            local name = tostring(other:toString());
+            if not string.find(name, "MoodlesUI") then
+                return false;
+            end
+        end
+    end
+    
+    return true;
 end
 
 function ISSimpleStatusUI:onMouseDown(x, y)
@@ -857,14 +903,6 @@ function ISEnduranceBarUI:getColor(val)
     else return {r=0.9,g=0.9,b=0.9} end
 end
 
-function ISEnduranceBarUI:isMouseOverSelf()
-    local mx = getMouseX()
-    local my = getMouseY()
-    local ax = self:getAbsoluteX()
-    local ay = self:getAbsoluteY()
-    return mx >= ax and mx < ax + self:getWidth() and my >= ay and my < ay + self:getHeight()
-end
-
 function ISEnduranceBarUI:render()
     if ISSimpleStatusUI.SkipRender > 0 then return end
 
@@ -915,7 +953,7 @@ function ISEnduranceBarUI:render()
                 shouldFade = true
             end
         else
-            if self:isMouseOverSelf() then
+            if self:isMouseOver() then
                 shouldFade = true
             end
         end
@@ -963,7 +1001,7 @@ function ISEnduranceBarUI:render()
         self:drawText(txt, txtX + 1, txtY + 1, 0, 0, 0, 0.75 * globalAlpha, UIFont.Small)
         self:drawText(txt, txtX, txtY, col.r, col.g, col.b, 1 * globalAlpha, UIFont.Small)
         
-        if globalAlpha > 0.9 and self:isMouseOverSelf() and not player:isAiming() then
+        if globalAlpha > 0.9 and self:isMouseOver() and not player:isAiming() then
             local title = getText("Tooltip_HUD_Endurance")
             local desc = string.format("%s: %d%%", title, math.floor(val * 100 + 0.5))
             if phase > 0 then
