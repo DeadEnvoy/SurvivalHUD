@@ -55,7 +55,21 @@ function ISMiniHealth:prerender()
         self:setX(80)
     end
 
-    if self:isMouseOver() then
+    local forcedShow = false
+    if self.player:isAiming() then
+        local weapon = self.player:getPrimaryHandItem()
+        if weapon and instanceof(weapon, "HandWeapon") and not weapon:isAimedFirearm() then
+            local bodyParts = self.player:getBodyDamage():getBodyParts()
+            for i=1, bodyParts:size() do
+                if bodyParts:get(i-1):getStiffness() >= 5 then
+                    forcedShow = true
+                    break
+                end
+            end
+        end
+    end
+
+    if self:isMouseOver() or forcedShow then
         self.isHover = true
         self.hideTimer = 30
         self.alpha = 1
