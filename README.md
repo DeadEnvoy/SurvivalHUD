@@ -47,6 +47,7 @@ Bug reports in the comments are ignored and/or deleted. There is a dedicated dis
 
 # **Updates**
 If a mod isn't getting updates and you've already reported any bugs you found in the relevant discussion thread, please **DON'T** bother me about it anywhere — Steam, Discord, wherever.
+
 I do this for free in my spare time, and if I lose interest in the game or have stuff going on in my personal life, don't expect updates during that period — that includes replies to comments too.
 
 **Workshop ID:** [3495906499](https://steamcommunity.com/sharedfiles/filedetails/?id=3495906499) (SurvivalHUD)  
