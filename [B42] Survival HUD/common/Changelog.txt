@@ -21,9 +21,10 @@
 [ ----- ]
 
 [ 1.1.0 ]
+- Fixed incorrect tooltip display.
 - All localization files migrated to the new format.
 - Mini Health Panel is now always shown when aiming with a melee weapon and having at least one muscle strain.
 - Fixed Mini Health Panel incorrectly consuming mouse clicks.
 - Added display of additional information for multiplayer.
-- Fixed incorrect tooltip display.
+- B41 support has been discontinued.
 [ ----- ]
