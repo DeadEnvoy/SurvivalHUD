@@ -1,13 +1,54 @@
-Copyright (c) 2025 DeadEnvoy
-
 All rights reserved.
 
-This software and associated documentation files (the "Software") 
-are the proprietary and confidential information of the author.
+Copyright (c) 2025-2026 DeadEnvoy (https://github.com/deadenvoy/)
 
-No part of this Software may be reproduced, distributed, or 
-transmitted in any form or by any means, including photocopying, 
-recording, or other electronic or mechanical methods, without the 
-prior written permission of the author, except in the case of 
-brief quotations embodied in critical reviews and certain other 
-noncommercial uses permitted by copyright law.
+This modification and associated files (the "Mod") are proprietary
+intellectual property created for the game Project Zomboid by The Indie Stone.
+
+Assets, code, documentation, translations, sound files, and other
+content included in this Mod are the exclusive property of the author.
+
+No part of this Mod may be reproduced, redistributed, modified, or
+incorporated into other modifications or derivative works without
+prior written permission from the author. This includes, but is not
+limited to, reuploading to Steam Workshop or other distribution
+platforms, bundling with other mods, or using assets in separate projects.
+
+Non-commercial use for personal gameplay is permitted. Distribution of
+unmodified files within this Mod package is permitted solely through
+the official Steam Workshop page or authorized channels specified by
+the author.
+
+For permissions, collaboration, or asset licensing inquiries,
+contact: @verstand.verloren (Discord) or verlorent@proton.me
+
+EXCEPTION FOR THE INDIE STONE
+
+The above restrictions do not apply to The Indie Stone (TIS), the developers
+of Project Zomboid. TIS retain full rights to use, reproduce, modify,
+distribute, incorporate into official game updates, or create derivative
+works from this Mod, including but not limited to: Lua scripts, assets,
+code, mechanics, ideas, and any other content contained herein.
+
+By creating this Mod, the author acknowledges and agrees to the following
+terms from the Project Zomboid modding agreement:
+
+1. The Indie Stone reserves the right to implement any features in
+   Project Zomboid irrespective of whether this Mod or its contents
+   accomplish the same goal.
+
+2. The Indie Stone are free to use any ideas, code, or assets found in
+   this Mod without restriction. While credit may be given for directly
+   incorporated ideas, The Indie Stone are not required to provide credit
+   or remuneration of any kind.
+
+3. This exception exists to ensure that any content in this Mod that
+   aligns with the Project Zomboid development roadmap may be implemented
+   by TIS without legal or ethical obligation to the original author.
+
+The author waives any claim of ownership or intellectual property rights
+against The Indie Stone in relation to the use of this Mod's contents
+within official Project Zomboid releases or related products.
+
+The full Project Zomboid Modding Policy can be found at:
+https://projectzomboid.com/blog/modding-policy/
