@@ -50,8 +50,4 @@ If a mod isn't getting updates and you've already reported any bugs you found in
 
 I do this for free in my spare time, and if I lose interest in the game or have stuff going on in my personal life, don't expect updates during that period — that includes replies to comments too.
 
-<<<<<<< HEAD
 **Workshop ID:** [3495906499](https://steamcommunity.com/sharedfiles/filedetails/?id=3495906499) (SurvivalHUD)  
-=======
-**Workshop ID:** [3495906499](https://steamcommunity.com/sharedfiles/filedetails/?id=3495906499) (SurvivalHUD)  
->>>>>>> a333dd94100c566b820483f45575b1ce9c660baf
