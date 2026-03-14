@@ -1,30 +1,30 @@
-require "ISUI/ISVersionWaterMark"
+require "ISUI/ISVersionWaterMark";
 
-local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.NewSmall)
+local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.NewSmall);
 
 WaterMarkUI.render = function(self)
-    self.chr = getPlayer()
-    if not self.chr then return end
+    self.chr = getPlayer();
+    if not self.chr then return; end
 
     if self.revButton then
-        self.revButton:setVisible(false)
+        self.revButton:setVisible(false);
     end
 
     if self.javaObject then
-        self.javaObject:setConsumeMouseEvents(false)
+        self.javaObject:setConsumeMouseEvents(false);
     end
 
-    ISPanel.render(self)
+    ISPanel.render(self);
 
-    self:setWidth(200); self:setX(getCore():getScreenWidth() - 10 - self.width); self:setY(getCore():getScreenHeight() - 90)
+    self:setWidth(200); self:setX(getCore():getScreenWidth() - 10 - self.width); self:setY(getCore():getScreenHeight() - 90);
 
-    local y = -FONT_HGT_SMALL - 3
-    local alpha, width = 0.3, self.width
+    local y = -FONT_HGT_SMALL - 3;
+    local alpha, width = 0.3, self.width;
 
     -- self:drawTextRight("x: ".. math.floor(self.chr:getX()) .. " , y: " .. math.floor(self.chr:getY()) .. ", z: " .. math.floor(self.chr:getZ()), width, y, 1, 1, 1, 1, UIFont.NewSmall); y = y - FONT_HGT_SMALL - 3;
 
     if isClient() then
-        local statusData = getMPStatus()
+        local statusData = getMPStatus();
         if tonumber(getMaxPlayers()) > 32 then
             self:drawTextRight(getText("UI_MaxPlayers_Notification"), width, y, 1, 1, 1, 1, UIFont.NewSmall); y = y - FONT_HGT_SMALL - 3;
         end
@@ -85,6 +85,6 @@ WaterMarkUI.render = function(self)
     end
 
     if not self:isVisible() then
-        self:setVisible(true)
+        self:setVisible(true);
     end
 end
