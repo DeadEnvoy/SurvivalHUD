@@ -1,0 +1,7 @@
+{
+    "UI_optionscreen_NeedsSize": "Taille des icônes de besoins",
+    "UI_optionscreen_NeedsSize_tt": "Change la taille d'affichage des icônes de besoins.",
+    "UI_optionscreen_HotbarSize": "Taille des icônes de la barre rapide",
+    "UI_optionscreen_HotbarSize_tt": "Change la taille d'affichage des emplacements de la barre rapide.",
+    "UI_optionscreen_ShowHandSlots": "Afficher les emplacements des mains"
+}

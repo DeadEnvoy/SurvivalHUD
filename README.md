@@ -12,7 +12,7 @@ A functional HUD displaying the player's core needs in DayZ style.
 - Thirst
 - Hunger
 - Body temperature
-- Infection
+- Intoxication
 - Sickness
 - Health
 
@@ -34,13 +34,19 @@ Supports the [Moodle Descriptions Expanded](https://steamcommunity.com/sharedfil
 
 # **F.A.Q**
 
-### 1. Will customization be added?
-No. Use other mods if you need it.
+### 1. The mod doesn't show up in the mod list, is this a bug?
+No, this means you have Build 41, and the mod is intended for Build 42.
 
-### 2. Is this compatible/works with [...]?
+### 2. Will Build 41 support be added?
+No.
+
+### 3. Is this compatible/works with [...]?
 I don't know, check it yourself. And if not, report it.
 
-### 3. I found a bug! Read the comments!
+### 4. Will [...] feature be added?
+While I consider suggestions for improvements, I prefer to work on developing and implementing ideas independently.
+
+### 5. I found a bug! Read the comments!
 Bug reports in the comments are ignored and/or deleted. There is a dedicated discussion for that:
 
 [![Bug Reports](https://i.postimg.cc/GhgNbmPy/bugreports.png)](https://steamcommunity.com/workshop/filedetails/discussion/3495906499/595151277615296006/)

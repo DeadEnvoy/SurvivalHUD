@@ -28,3 +28,29 @@
 - Added display of additional information for multiplayer.
 - B41 support has been discontinued.
 [ ----- ]
+
+[ 1.2.0 ]
+UI:
+- Hotbar has been redesigned.
+- Icon quality has been significantly improved.
+- Moodles whose function is performed by the icons are now hidden.
+- Added item drag-and-drop functionality between hotbar slots.
+- Endurance bar base width has been increased, and percentage display has been removed.
+- Clicking on the temperature icon now opens the body temperature panel.
+- Clicking on the health icon now opens the character health panel.
+- Added hotbar slot and icon base size adjustment option.
+
+BALANCE:
+- Renamed "Infection" to "Intoxication".
+- Intoxication icon is now only affected by food poisoning and corpse sickness.
+- Item condition bar in the hotbar is now only displayed when the item is equipped.
+
+FIXES:
+- Fixed text formatting in the "Mini Health Panel" tooltip.
+- Minor fixes and improvements.
+
+TECHNICAL:
+- "Mini Health Panel" is now optional.
+- Added "Mod Manager" & "Moodles In Lua" as a required dependency.
+- B42.14 & B42.15 support has been discontinued.
+[ ----- ]

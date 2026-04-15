@@ -1,0 +1,7 @@
+{
+    "UI_optionscreen_NeedsSize": "Размер иконок потребностей",
+    "UI_optionscreen_NeedsSize_tt": "Изменяет размер отображения иконок потребностей.",
+    "UI_optionscreen_HotbarSize": "Размер слота в хотбаре",
+    "UI_optionscreen_HotbarSize_tt": "Изменяет размер отображения слотов хотбара.",
+    "UI_optionscreen_ShowHandSlots": "Показывать слоты для рук"
+}
