@@ -54,3 +54,11 @@ TECHNICAL:
 - Added "Mod Manager" & "Moodles In Lua" as a required dependency.
 - B42.14 & B42.15 support has been discontinued.
 [ ----- ]
+
+[ 1.2.1 ]
+UI:
+- Colors for the 3rd and 4th phases have been adjusted.
+
+FIXES:
+- Added handling for "NaN" temperature values.
+[ ----- ]
