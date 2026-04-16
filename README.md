@@ -17,6 +17,7 @@ A functional HUD displaying the player's core needs in DayZ style.
 - Health
 
 # **Recommended**
+- [[B42] Mini Health Panel](https://steamcommunity.com/sharedfiles/filedetails/?id=2866258937)
 - [[B42] Plain Moodle Resurrection](https://steamcommunity.com/sharedfiles/filedetails/?id=3569718104)
 - [[B42] V1CeNtE's Moodles + WIP](https://steamcommunity.com/sharedfiles/filedetails/?id=3389609367)
 
@@ -29,6 +30,7 @@ Supports the [Moodle Descriptions Expanded](https://steamcommunity.com/sharedfil
 
 # **Incompatibilities**
 - Gamepad & Split Screen modes.
+- Any mods that modify the hotbar (exception: [Clean Hotbar](https://steamcommunity.com/sharedfiles/filedetails/?id=3461263912)).
 - [Knox Event Expanded NPC](https://steamcommunity.com/sharedfiles/filedetails/?id=3397396843) (partly) — The icons overlap some of the group control buttons, but there is no direct incompatibility.
 - And other mods that use the same areas.
 
