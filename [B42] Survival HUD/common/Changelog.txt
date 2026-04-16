@@ -61,4 +61,5 @@ UI:
 
 FIXES:
 - Added handling for "NaN" temperature values.
+- Fixed missing title coloring in the "FoodEaten" tooltip.
 [ ----- ]

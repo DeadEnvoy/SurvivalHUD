@@ -41,6 +41,13 @@ SurvivalHUD.PhaseColors = {
     [4] = { r = 0.937, g = 0.196, b = 0.247 },
 };
 
+SurvivalHUD.FoodEatenPhaseColors = {
+    [1] = { r = 0.729, g = 0.898, b = 0.682 },
+    [2] = { r = 0.635, g = 0.862, b = 0.576 },
+    [3] = { r = 0.545, g = 0.831, b = 0.470 },
+    [4] = { r = 0.454, g = 0.796, b = 0.364 },
+};
+
 SurvivalHUD.TempPhaseColors = {
     ["-4"] = { r = 0.5, g = 0.6, b = 0.75 },
     ["-3"] = { r = 0.1, g = 0.67, b = 0.86 },
@@ -296,6 +303,13 @@ function SurvivalHUD.Tooltip:getStatLineColor()
             return color.r, color.g, color.b;
         end
         return 1, 1, 1;
+    end
+
+    if self.iconType == "Hunger" and self.foodEatenPhase then
+        local color = SurvivalHUD.FoodEatenPhaseColors[self.foodEatenPhase];
+        if color then
+            return color.r, color.g, color.b;
+        end
     end
 
     local color = SurvivalHUD.PhaseColors[phaseLevel];
@@ -1070,6 +1084,7 @@ function SurvivalHUD:prepareTooltip(statType, val)
     end
 
     local phase = self:getPhaseData(val, statType);
+    self.Tooltip.foodEatenPhase = nil;
     if phase then
         local phaseLevel = phase[3];
         local showMoodDescription = false;
@@ -1099,6 +1114,7 @@ function SurvivalHUD:prepareTooltip(statType, val)
                 else
                     phaseLevel = 1;
                 end
+                self.Tooltip.foodEatenPhase = phaseLevel;
             end
         elseif phaseLevel ~= 0 then
             showMoodDescription = true;
