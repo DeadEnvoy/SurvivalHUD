@@ -37,8 +37,8 @@ SurvivalHUD.PhaseColors = {
     [0] = { r = 1, g = 1, b = 1 },
     [1] = { r = 1, g = 0.866, b = 0 },
     [2] = { r = 1, g = 0.482, b = 0.101 },
-    [3] = { r = 0.937, g = 0.196, b = 0.247 },
-    [4] = { r = 0.819, g = 0.105, b = 0.125 },
+    [3] = { r = 0.862, g = 0.247, b = 0.290 },
+    [4] = { r = 0.937, g = 0.196, b = 0.247 },
 };
 
 SurvivalHUD.TempPhaseColors = {
@@ -340,6 +340,10 @@ function SurvivalHUD:getPhaseData(val, statType)
     local phases = SurvivalHUD.Phases[statType];
     if not phases then return nil; end
 
+    if val ~= val then
+        return nil;
+    end
+
     for _, phase in ipairs(phases) do
         if val >= phase[1] and val <= phase[2] then
             return phase;
@@ -431,8 +435,7 @@ end
 function SurvivalHUD:getIconPadPx(statType)
     local size = SurvivalHUD.IconSize;
     local pad = SurvivalHUD.IconVisualPadding[statType];
-    return pad and math.floor(size * pad.left) or 0,
-           pad and math.floor(size * pad.right) or 0;
+    return pad and math.floor(size * pad.left) or 0, pad and math.floor(size * pad.right) or 0;
 end
 
 
@@ -583,8 +586,7 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
     local function getVisibleIcons(group)
         local t = {};
         for _, st in ipairs(group.icons) do
-            local hidden = (st == "Intoxication" and not showIntoxication)
-                        or (st == "Sickness" and not showSickness);
+            local hidden = (st == "Intoxication" and not showIntoxication) or (st == "Sickness" and not showSickness);
             if not hidden then table.insert(t, st); end
         end
         return t;
@@ -712,27 +714,31 @@ function SurvivalHUD:render()
     for statType, val in pairs(vals) do
         local icon = self.icons[statType];
 
-        if val ~= icon.lastVal and icon.lastVal ~= -1 then
-            icon.arrow.visible = true;
-            icon.arrow.time = now;
-            icon.arrow.dir = (val > icon.lastVal) and "up" or "down";
-        end
-
-        local iconHidden = false;
-        if statType == "Intoxication" or statType == "Sickness" then
-            iconHidden = val <= 0;
-        elseif statType == "Temperature" then
-            iconHidden = val >= 36.55 and val <= 37.45;
+        if val ~= val then
+            icon.lastVal = -1;
         else
-            iconHidden = val >= 99;
-        end
+            if val ~= icon.lastVal and icon.lastVal ~= -1 then
+                icon.arrow.visible = true;
+                icon.arrow.time = now;
+                icon.arrow.dir = (val > icon.lastVal) and "up" or "down";
+            end
 
-        if icon.arrow.visible
-            and (now - icon.arrow.time >= SurvivalHUD.ArrowDuration or iconHidden) then
-            icon.arrow.visible = false;
-        end
+            local iconHidden = false;
+            if statType == "Intoxication" or statType == "Sickness" then
+                iconHidden = val <= 0;
+            elseif statType == "Temperature" then
+                iconHidden = val >= 36.55 and val <= 37.45;
+            else
+                iconHidden = val >= 99;
+            end
 
-        icon.lastVal = val;
+            if icon.arrow.visible
+                and (now - icon.arrow.time >= SurvivalHUD.ArrowDuration or iconHidden) then
+                icon.arrow.visible = false;
+            end
+
+            icon.lastVal = val;
+        end
     end
 
     local curX = 0;
@@ -888,7 +894,19 @@ end
 function SurvivalHUD:drawStatusIcon(x, y, statType, val, alpha)
     local icon = self.icons[statType];
     local phase = self:getPhaseData(val, statType);
-    if not phase then return; end
+
+    if not phase then
+        if statType == "Temperature" then
+            self.iconPos[statType] = { x = x, y = y };
+            local sizeStr = tostring(SurvivalHUD.IconSize);
+            local bgPath = "media/ui/Needs/" .. sizeStr .. "/Temperature/Temperature_Background_0.png";
+            local bgTex = getTexture(bgPath);
+            if bgTex then
+                self:drawTextureScaled(bgTex, x, y, SurvivalHUD.IconSize, SurvivalHUD.IconSize, alpha, 1, 1, 1);
+            end
+        end
+        return;
+    end
 
     self.iconPos[statType] = { x = x, y = y };
 
@@ -1015,7 +1033,9 @@ function SurvivalHUD:prepareTooltip(statType, val)
 
     local desc;
     if statType == "Temperature" then
-        if getCore():getOptionDisplayAsCelsius() then
+        if val ~= val then
+            desc = string.format("%s: NaN.", title);
+        elseif getCore():getOptionDisplayAsCelsius() then
             desc = string.format("%s: %.1f C.", title, val);
         else
             desc = string.format("%s: %.1f F.", title, val * 9 / 5 + 32);
