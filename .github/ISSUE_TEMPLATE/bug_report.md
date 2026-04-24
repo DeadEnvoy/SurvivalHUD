@@ -25,8 +25,8 @@ assignees: ''
 **Desktop (please complete the following information):**
 ```
 OS: [e.g. macOS]
-Game Version: [e.g. 42.16.3]
-Mod Version: [e.g. 1.2.0]
+Game Version: [e.g. 42.17.1]
+Mod Version: [e.g. 1.2.2]
 ```
 
 **Additional context (optional)**
