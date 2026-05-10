@@ -23,3 +23,11 @@ Server Settings: [Host/Dedicated/N/A]
 Game Version: [e.g. 42.17.1]
 Mod Version: [e.g. 1.2.2]
 ```
+
+<details>
+<summary><b>Error from console.txt:</b></summary>
+
+```
+> Paste the error you found.
+```
+</details>
