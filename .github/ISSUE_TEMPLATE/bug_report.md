@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
+title: "[42.xx] Issue title"
 labels: bug
 assignees: ''
 
@@ -11,23 +11,15 @@ assignees: ''
 > A clear and concise description of what the bug is.
 
 **To Reproduce**
-> Steps to reproduce the behavior:
 > 1. Go to '...'
 > 2. Click on '....'
 > 3. See error
 
-**Expected behavior (optional)**
-> A clear and concise description of what you expected to happen.
-
-**Screenshots (optional)**
-> If applicable, add screenshots to help explain your problem.
-
-**Desktop (please complete the following information):**
+**Desktop:**
 ```
-OS: [e.g. macOS]
+OS: [Windows/macOS/Linux]
+Mode: [Singleplayer/Multiplayer]
+Server Settings: [Host/Dedicated/N/A]
 Game Version: [e.g. 42.17.1]
 Mod Version: [e.g. 1.2.2]
 ```
-
-**Additional context (optional)**
-> Add any other context about the problem here.
