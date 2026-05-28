@@ -1,5 +1,4 @@
 require "ISUI/ISVersionWaterMark";
-require "HUD/Core";
 
 local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.NewSmall);
 

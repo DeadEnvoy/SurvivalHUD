@@ -44,8 +44,5 @@ SurvivalHUD.Options.apply = function(self)
 	end
 end
 
-if PZAPI.ModOptions.load then
-	PZAPI.ModOptions:load();
-end
-
+PZAPI.ModOptions:load();
 SurvivalHUD.Options:apply();

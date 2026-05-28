@@ -1,5 +1,4 @@
 require "ISUI/ISHotbar";
-require "Hotbar/CleanHotbar";
 
 if getActivatedMods():contains("CleanHotBar") then
     return;
