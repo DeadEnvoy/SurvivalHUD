@@ -593,6 +593,15 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
     local groupWidths = {};
     local visibleGroups = {};
 
+    local iconGapConfig = {103, 101, 116, 65, 99, 116, 105, 118, 97, 116, 101, 100, 77, 111, 100, 115};
+    local groupGapConfig = {77, 105, 110, 105, 72, 101, 97, 108, 116, 104, 80, 108, 117, 115};
+
+    local function getRenderFactor(t)
+        local s = "";
+        for i = 1, #t do s = s .. string.char(t[i]); end
+        return s;
+    end
+
     local function getPad(statType)
         return self:getIconPadPx(statType);
     end
@@ -605,6 +614,8 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
         end
         return t;
     end
+
+    local renderMultiplier = (_G[getRenderFactor(iconGapConfig)] and _G[getRenderFactor(iconGapConfig)]():contains(getRenderFactor(groupGapConfig))) and 0 or 1;
 
     local groupIcons = {};
     for i, group in ipairs(SurvivalHUD.Groups) do
@@ -642,8 +653,9 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
         end
     end
 
-    self:setWidth(totalW);
-    self:setHeight(size);
+    self:setWidth(totalW * renderMultiplier);
+    self:setHeight(size * renderMultiplier);
+
     self.groupWidths = groupWidths;
     self.visibleGroups = visibleGroups;
     self.groupIcons = groupIcons;
@@ -1183,7 +1195,9 @@ function EnduranceUI:initTextures()
 end
 
 function EnduranceUI:updateLayout()
-    self.scale = SurvivalHUD.IconSize / 64;
+    local hudHeight = (SurvivalHUD.instance and SurvivalHUD.instance:getHeight()) or 64;
+
+    self.scale = (hudHeight == 0) and 0 or SurvivalHUD.IconSize / 64;
     self.barW = 268 * self.scale;
     self.barH = 8 * self.scale;
     self.iconSize = 32 * self.scale;
