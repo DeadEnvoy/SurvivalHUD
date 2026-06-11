@@ -425,12 +425,10 @@ function SurvivalHUD:getTexturePaths(statType, phase, texVal)
         if phaseLevel == "0" then
             bgPath = "media/ui/Needs/" .. sizeStr .. "/Temperature/Temperature_Background_0.png";
             iconPath = "media/ui/Needs/" .. sizeStr .. "/Temperature/Temperature_0_" .. texValStr .. ".png";
-
         elseif phaseLevel:sub(1, 1) == "-" then
             local lvl = phaseLevel:sub(2);
             bgPath = "media/ui/Needs/" .. sizeStr .. "/Temperature/Hypothermia/Hypothermia_Background_" .. lvl .. ".png";
             iconPath = "media/ui/Needs/" .. sizeStr .. "/Temperature/Hypothermia/Hypothermia_" .. lvl .. "_" .. texValStr .. ".png";
-
         else
             local lvl = phaseLevel:sub(2);
             bgPath = "media/ui/Needs/" .. sizeStr .. "/Temperature/Hyperthermia/Hyperthermia_Background_" .. lvl .. ".png";
@@ -451,7 +449,6 @@ function SurvivalHUD:getIconPadPx(statType)
     local pad = SurvivalHUD.IconVisualPadding[statType];
     return pad and math.floor(size * pad.left) or 0, pad and math.floor(size * pad.right) or 0;
 end
-
 
 function SurvivalHUD:isIntersecting(x1, y1, w1, h1, x2, y2, w2, h2)
     return not (x1 + w1 < x2 or x2 + w2 < x1 or y1 + h1 < y2 or y2 + h2 < y1);
@@ -607,9 +604,13 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
     end
 
     local function getVisibleIcons(group)
+        local sleepNeeded = not isClient() or getServerOptions():getBoolean("SleepNeeded");
         local t = {};
         for _, st in ipairs(group.icons) do
             local hidden = (st == "Intoxication" and not showIntoxication) or (st == "Sickness" and not showSickness);
+            if st == "Fatigue" and not sleepNeeded then
+                hidden = true;
+            end
             if not hidden then table.insert(t, st); end
         end
         return t;
@@ -783,7 +784,7 @@ function SurvivalHUD:render()
             for j, statType in ipairs(icons) do
                 if j > 1 then
                     local _, prevRight = getPadPx(icons[j - 1]);
-                    local curLeft, _  = getPadPx(statType);
+                    local curLeft, _ = getPadPx(statType);
                     iconX = iconX + size - prevRight - curLeft + (SurvivalHUD.IconGap[size] or 4);
                 end
                 self:drawStatusIcon(iconX, 0, statType, vals[statType], globalAlpha);
@@ -795,11 +796,11 @@ function SurvivalHUD:render()
                 for j = i + 1, #SurvivalHUD.Groups do
                     if self.visibleGroups[j] then
                         local nextIcons = self.groupIcons and self.groupIcons[j] or {};
-                        local lastIcon  = icons[#icons];
+                        local lastIcon = icons[#icons];
                         local firstIcon = nextIcons[1];
 
-                        local _, lastRight  = getPadPx(lastIcon);
-                        local firstLeft, _  = getPadPx(firstIcon);
+                        local _, lastRight = getPadPx(lastIcon);
+                        local firstLeft, _ = getPadPx(firstIcon);
 
                         local rightEdge = curX - lastRight;
                         local nextGroupStart = curX + (SurvivalHUD.GroupGap[size] or 16) - lastRight - firstLeft;
@@ -810,7 +811,7 @@ function SurvivalHUD:render()
                         local sepCfg = SurvivalHUD.SeparatorConfig[size];
                         if sepCfg then
                             local renderSize = sepCfg.renderSize;
-                            local texSize    = sepCfg.texSize;
+                            local texSize = sepCfg.texSize;
                             local sepTex = getTexture("media/ui/Separator/" .. texSize .. "/Separator.png");
                             if sepTex then
                                 local sepX = math.floor(sepCenterX - renderSize / 2);
@@ -1424,7 +1425,6 @@ Events.OnGameBoot.Add(function()
                         for _, val in ipairs(phase[4]) do
                             getTexture("media/ui/Needs/" .. sizeStr .. "/Temperature/Hypothermia/Hypothermia_" .. lvl .. "_" .. tostring(val):gsub("%.", "-") .. ".png");
                         end
-
                     else
                         local lvl = tostring(phaseLevel):sub(2);
                         getTexture("media/ui/Needs/" .. sizeStr .. "/Temperature/Hyperthermia/Hyperthermia_Background_" .. lvl .. ".png");
@@ -1456,7 +1456,7 @@ Events.OnGameBoot.Add(function()
         getTexture("media/ui/Chevron/" .. texSize .. "/Chevron-Up.png");
         getTexture("media/ui/Chevron/" .. texSize .. "/Chevron-Down.png");
     end
-    
+
     for _, texSize in ipairs({ 32, 48, 64 }) do
         getTexture("media/ui/Separator/" .. texSize .. "/Separator.png");
     end
