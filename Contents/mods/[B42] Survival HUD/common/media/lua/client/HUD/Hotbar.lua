@@ -34,6 +34,16 @@ HotbarReskin.getHandTexture = function(textureName)
 	return getTexture("media/ui/Hotbar/" .. size .. "/Hand/" .. textureName .. ".png");
 end
 
+HotbarReskin.getFitSize = function(tex, maxSide)
+	local w = tex:getWidth();
+	local h = tex:getHeight();
+	if w <= maxSide and h <= maxSide then
+		return w, h;
+	end
+	local ratio = maxSide / math.max(w, h);
+	return math.floor(w * ratio + 0.5), math.floor(h * ratio + 0.5);
+end
+
 HotbarReskin.ConditionPhases = {
 	{ 75, 100, 0, { 100, 95, 90, 85, 80 } },
 	{ 50, 75, 1, { 75, 70, 65, 60, 55 } },
@@ -174,10 +184,11 @@ HotbarReskin.drawHandSlot = function(self, x, item, isSelected, isHovered, isPri
 
 	if item then
 		local tex = item:getTexture();
-		local ix = x + math.floor((size - tex:getWidth()) / 2);
-		local iy = HotbarReskin.HOTBAR_MARGIN + math.floor((size - tex:getHeight()) / 2);
-		self:drawTexture(tex, ix + 1, iy + 1, 0.25, 0, 0, 0);
-		self:drawTexture(tex, ix, iy, 1, 1, 1, 1);
+		local w, h = HotbarReskin.getFitSize(tex, size - 8);
+		local ix = x + math.floor((size - w) / 2);
+		local iy = HotbarReskin.HOTBAR_MARGIN + math.floor((size - h) / 2);
+		self:drawTextureScaled(tex, ix + 1, iy + 1, w, h, 0.25, 0, 0, 0);
+		self:drawTextureScaled(tex, ix, iy, w, h, 1, 1, 1, 1);
 	end
 end
 
@@ -231,9 +242,10 @@ HotbarReskin.ensureDragPreviewUI = function()
 			if ISHotbar.hotbarDraggingItem then
 				local tex = ISHotbar.hotbarDraggingItem:getTexture();
 				if tex then
-					local mx = getMouseX() - math.floor(tex:getWidth() / 2);
-					local my = getMouseY() - math.floor(tex:getHeight() / 2);
-					self:drawTexture(tex, mx, my, 0.5, 1, 1, 1);
+					local w, h = HotbarReskin.getFitSize(tex, HotbarReskin.HOTBAR_SIZE);
+					local mx = getMouseX() - math.floor(w / 2);
+					local my = getMouseY() - math.floor(h / 2);
+					self:drawTextureScaled(tex, mx, my, w, h, 0.5, 1, 1, 1);
 				end
 			end
 		end
@@ -359,10 +371,11 @@ ISHotbar.render = function(self)
 
 		if item then
 			local tex = item:getTexture();
-			local ix = slotX + math.floor((size - tex:getWidth()) / 2);
-			local iy = HotbarReskin.HOTBAR_MARGIN + math.floor((size - tex:getHeight()) / 2);
-			self:drawTexture(tex, ix + 1, iy + 1, 0.25, 0, 0, 0);
-			self:drawTexture(tex, ix, iy, 1, 1, 1, 1);
+			local w, h = HotbarReskin.getFitSize(tex, size - 8);
+			local ix = slotX + math.floor((size - w) / 2);
+			local iy = HotbarReskin.HOTBAR_MARGIN + math.floor((size - h) / 2);
+			self:drawTextureScaled(tex, ix + 1, iy + 1, w, h, 0.25, 0, 0, 0);
+			self:drawTextureScaled(tex, ix, iy, w, h, 1, 1, 1, 1);
 		elseif slot.texture then
 			local st = slot.texture;
 			local ix = slotX + math.floor((size - st:getWidth()) / 2);
@@ -419,10 +432,7 @@ ISHotbar.new = function(self, character)
 	return o;
 end
 
-local original_refresh = ISHotbar.refresh;
-ISHotbar.refresh = function(self)
-	original_refresh(self);
-
+Functions.PostHook.Add(ISHotbar, "refresh", function(self)
 	self.slotWidth = HotbarReskin.HOTBAR_SIZE;
 	self.slotHeight = HotbarReskin.HOTBAR_SIZE;
 	self.slotPad = HotbarReskin.HOTBAR_PAD;
@@ -431,7 +441,7 @@ ISHotbar.refresh = function(self)
 	local count = math.max(#self.availableSlot, 1);
 	self:setWidth(HotbarReskin.calcTotalWidth(count));
 	self:setHeight(HotbarReskin.HOTBAR_SIZE + HotbarReskin.HOTBAR_MARGIN * 2);
-end
+end)
 
 ISHotbar.getSlotIndexAt = function(self, x, y)
 	if y < 0 or y >= self.height then return -1 end
