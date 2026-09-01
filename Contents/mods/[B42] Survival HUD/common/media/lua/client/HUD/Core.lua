@@ -863,26 +863,22 @@ function SurvivalHUD:onMouseUp(x, y)
     local mx = self:getMouseX();
     local my = self:getMouseY();
     local size = SurvivalHUD.IconSize;
-    local healthPos = self.iconPos["Health"];
-    if healthPos and mx >= healthPos.x and mx <= healthPos.x + size and my >= healthPos.y and my <= healthPos.y + size then
-        if self:isMouseOver() then
-            local infopanel = getPlayerInfoPanel(player:getPlayerNum());
-            if infopanel then
-                infopanel:toggleView(getText("IGUI_XP_Health"));
-                getSoundManager():playUISound("UISelectListItem");
+
+    local clickTargets = {
+        { stat = "Health", view = "IGUI_XP_Health" },
+        { stat = "Temperature", view = "IGUI_XP_ClothingIns" },
+    };
+    for _, t in ipairs(clickTargets) do
+        local pos = self.iconPos[t.stat];
+        if pos and mx >= pos.x and mx <= pos.x + size and my >= pos.y and my <= pos.y + size then
+            if self:isMouseOver() then
+                local infopanel = getPlayerInfoPanel(player:getPlayerNum());
+                if infopanel then
+                    infopanel:toggleView(getText(t.view));
+                    getSoundManager():playUISound("UISelectListItem");
+                end
+                return true;
             end
-            return true;
-        end
-    end
-    local tempPos = self.iconPos["Temperature"];
-    if tempPos and mx >= tempPos.x and mx <= tempPos.x + size and my >= tempPos.y and my <= tempPos.y + size then
-        if self:isMouseOver() then
-            local infopanel = getPlayerInfoPanel(player:getPlayerNum());
-            if infopanel then
-                infopanel:toggleView(getText("IGUI_XP_ClothingIns"));
-                getSoundManager():playUISound("UISelectListItem");
-            end
-            return true;
         end
     end
     return true;
