@@ -18,30 +18,28 @@ if HotbarReskin then
 end
 
 SurvivalHUD.Options.apply = function(self)
-	local selectedSizes = {48, 64, 80};
-	local iconIdx = self:getOption("iconSize"):getValue();
-	local iconSize = selectedSizes[iconIdx];
+    local selectedSizes = {48, 64, 80};
+    local iconIdx = self:getOption("iconSize"):getValue();
+    local iconSize = selectedSizes[iconIdx];
 
-	SurvivalHUD.BaseIconSize = iconSize;
-	SurvivalHUD.IconSize = iconSize;
+    SurvivalHUD.ICON_SIZE = iconSize;
 
-	if SurvivalHUD.instance then
-		SurvivalHUD.instance.layoutDirty = true;
-	end
+    if SurvivalHUD.instance then
+        SurvivalHUD.instance.layoutDirty = true;
+    end
 
-	if EnduranceUI.instance then
-		EnduranceUI.instance.layoutDirty = true;
-	end
+    if EnduranceUI.instance then
+        EnduranceUI.instance.layoutDirty = true;
+    end
 
     if HotbarReskin then
         local hotbarIdx = self:getOption("hotbarSize"):getValue();
         local hotbarSize = selectedSizes[hotbarIdx];
 
-		HotbarReskin.HOTBAR_SIZE = hotbarSize;
-		HotbarReskin.BASE_HOTBAR_SIZE = hotbarSize;
-        
+        HotbarReskin.HOTBAR_SIZE = hotbarSize;
+
         SurvivalHUD.ShowHandSlots = self:getOption("showHandSlots"):getValue();
-	end
+    end
 end
 
 PZAPI.ModOptions:load();

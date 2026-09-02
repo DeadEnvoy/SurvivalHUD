@@ -16,7 +16,7 @@ WaterMarkUI.render = function(self)
     self:setWidth(WATERMARK_WIDTH);
     self:setX(getCore():getScreenWidth() - 10 - self.width);
 
-    local hudHeight = SurvivalHUD.BaseIconSize + HUD_TOP_OFFSET;
+    local hudHeight = SurvivalHUD.ICON_SIZE + HUD_TOP_OFFSET;
     self:setY(getCore():getScreenHeight() - hudHeight);
 
     local y = -FONT_HGT_SMALL - 3;
