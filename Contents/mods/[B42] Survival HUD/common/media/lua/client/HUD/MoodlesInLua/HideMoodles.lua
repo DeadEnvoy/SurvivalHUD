@@ -183,7 +183,8 @@ if hasMF and (MF and MF.ISMoodle) then
                 end
             end
 
-            for k, v in pairs(self.char:getModData().Moodles) do
+            local _, allMoodles = self:getMoodleData();
+            for k, v in pairs(allMoodles) do
                 if k == self.name then
                     break;
                 else
