@@ -29,6 +29,8 @@ local ARROW_OFFSET = 5.25;
 
 local TOOLTIP_ALPHA_THRESHOLD = 0.9;
 
+local CRITICAL_BLINK_PERIOD_MS = 1000;
+
 local FOOD_EATEN_THRESHOLDS = {
     { timer = 4800, level = 4 },
     { timer = 3200, level = 3 },
@@ -116,6 +118,16 @@ local PHASES = {
         { 25, 40, 3, { 40, 35, 30 } },
         { 0, 25, 4, { 25, 20, 15, 10, 5 } },
     },
+};
+
+local CRITICAL_PHASE_LEVELS = {
+    Fatigue = { [4] = true },
+    Hunger = { [4] = true },
+    Thirst = { [4] = true },
+    Temperature = { ["-4"] = true, ["+4"] = true },
+    Sickness = { [4] = true },
+    Intoxication = { [4] = true },
+    Health = { [4] = true },
 };
 
 local GROUPS = {
@@ -449,6 +461,14 @@ local function valueToFilename(v)
     return tostring(v):gsub("%.", "-");
 end
 
+local function buildNeutralBgPath(sizeStr, statType)
+    if statType == "Temperature" then
+        return "media/ui/Needs/" .. sizeStr .. "/Temperature/Temperature_Background_0.png";
+    end
+    local typeCap = statType:sub(1, 1):upper() .. statType:sub(2);
+    return "media/ui/Needs/" .. sizeStr .. "/" .. typeCap .. "/" .. typeCap .. "_Background_0.png";
+end
+
 local function buildTexturePaths(sizeStr, statType, phase, texVal)
     local phaseLevel = phase[3];
     local bgPath, iconPath;
@@ -776,9 +796,7 @@ function SurvivalHUD:drawStatusIcon(x, y, statType, val, alpha)
     if not phase then
         if statType == "Temperature" then
             self.iconPos[statType] = { x = x, y = y };
-            local sizeStr = tostring(CURRENT_ICON_SIZE);
-            local bgPath = "media/ui/Needs/" .. sizeStr .. "/Temperature/Temperature_Background_0.png";
-            local bgTex = getTexture(bgPath);
+            local bgTex = getTexture(buildNeutralBgPath(tostring(CURRENT_ICON_SIZE), statType));
             if bgTex then
                 self:drawTextureScaled(bgTex, x, y, CURRENT_ICON_SIZE, CURRENT_ICON_SIZE, alpha, 1, 1, 1);
             end
@@ -792,6 +810,11 @@ function SurvivalHUD:drawStatusIcon(x, y, statType, val, alpha)
     if texVal then icon.texVal = texVal; end
 
     local bgPath, iconPath = self:getTexturePaths(statType, phase, icon.texVal);
+
+    local isCritical = CRITICAL_PHASE_LEVELS[statType] and CRITICAL_PHASE_LEVELS[statType][phase[3]];
+    if isCritical and getTimestampMs() % CRITICAL_BLINK_PERIOD_MS < CRITICAL_BLINK_PERIOD_MS / 2 then
+        bgPath = buildNeutralBgPath(tostring(CURRENT_ICON_SIZE), statType);
+    end
 
     if statType == "Hunger" and val > 95 then
         local player = getPlayer();
