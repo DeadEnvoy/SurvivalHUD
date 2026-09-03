@@ -167,6 +167,47 @@ local function getPanelsVisible(playerNum)
     return hotbar and hotbar:isReallyVisible(), dash and dash:isReallyVisible(), pscDash and pscDash:isReallyVisible();
 end
 
+local function getRangedWeapon(player)
+    local weapon = player:getPrimaryHandItem();
+    if not weapon or not instanceof(weapon, "HandWeapon") or not weapon:isRanged() then
+        return nil;
+    end
+    return weapon;
+end
+
+local function truncateNameToWidth(name, font, maxWidth)
+    if getTextManager():MeasureStringX(font, name) <= maxWidth then
+        return name;
+    end
+    if getTextManager():MeasureStringX(font, "...") > maxWidth then
+        return nil;
+    end
+    for cut = #name - 1, 1, -1 do
+        local byte = string.byte(name, cut);
+        if byte < 0x80 or byte >= 0xC0 then
+            local prefix = string.sub(name, 1, cut) .. "...";
+            if getTextManager():MeasureStringX(font, prefix) <= maxWidth then
+                return prefix;
+            end
+        end
+    end
+    return nil;
+end
+
+local function getAmmoDisplayText(weapon)
+    if weapon:isJammed() then
+        return "X";
+    end
+    if weapon:getMagazineType() and weapon:isContainsClip() then
+        local chamberFlag = weapon:isRoundChambered() and "1" or "0";
+        return chamberFlag .. " (" .. weapon:getCurrentAmmoCount() .. ")";
+    end
+    if weapon:haveChamber() then
+        return tostring(weapon:getCurrentAmmoCount() + (weapon:isRoundChambered() and 1 or 0));
+    end
+    return tostring(weapon:getCurrentAmmoCount());
+end
+
 local MOODLE_NAMES = {
     Fatigue = "Tired",
     Thirst = "Thirst",
@@ -1255,6 +1296,24 @@ function EnduranceUI:render()
     local col = self:getColor(val);
     if fillW > 0 then
         self:drawRect(barX, barY, fillW, self.barH, globalAlpha, col.r, col.g, col.b);
+    end
+
+    local weapon = getRangedWeapon(player);
+    if weapon and weapon:getMaxAmmo() > 0 then
+        local font = self.scale < 1 and UIFont.Small or UIFont.Medium;
+        local statusText = getAmmoDisplayText(weapon);
+        local statusWidth = getTextManager():MeasureStringX(font, statusText);
+        local fontHgt = getTextManager():getFontHeight(font);
+        local textY = barY - fontHgt - 6 * self.scale;
+        local nameMaxWidth = self.barW - statusWidth - 8 * self.scale;
+
+        local name = truncateNameToWidth(weapon:getDisplayName(), font, nameMaxWidth);
+        if name then
+            self:drawText(name, barX + 1, textY + 1, 0, 0, 0, globalAlpha, font);
+            self:drawText(name, barX, textY, 1, 1, 1, globalAlpha, font);
+        end
+        self:drawTextRight(statusText, barX + self.barW + 1, textY + 1, 0, 0, 0, globalAlpha, font);
+        self:drawTextRight(statusText, barX + self.barW, textY, 1, 1, 1, globalAlpha, font);
     end
 
     if globalAlpha > TOOLTIP_ALPHA_THRESHOLD and self:isMouseOver() and not player:isAiming() then
