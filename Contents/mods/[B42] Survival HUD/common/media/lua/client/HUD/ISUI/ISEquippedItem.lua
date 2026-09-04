@@ -12,10 +12,16 @@ end
 
 local original_ISEquippedItem_checkBounds = ISEquippedItem.checkBounds;
 function ISEquippedItem:checkBounds(_boundsItem, _x, _y)
-    if _boundsItem ~= nil and _boundsItem.getIsVisible and not _boundsItem:getIsVisible() then
+    if _boundsItem == nil then
+        return original_ISEquippedItem_checkBounds(self, _boundsItem, _x, _y);
+    end
+    if _boundsItem.hudHandTooltip and self.hudHandsHidden then
         return false;
     end
-    if _boundsItem ~= nil and _boundsItem.getAbsoluteX then
+    if _boundsItem.getIsVisible and not _boundsItem:getIsVisible() then
+        return false;
+    end
+    if _boundsItem.getAbsoluteX then
         local absX = _boundsItem:getAbsoluteX();
         local absY = _boundsItem:getAbsoluteY();
         if _x >= absX and _x <= absX + _boundsItem:getWidth() and _y >= absY and _y <= absY + _boundsItem:getHeight() then
@@ -24,6 +30,110 @@ function ISEquippedItem:checkBounds(_boundsItem, _x, _y)
         return false;
     end
     return original_ISEquippedItem_checkBounds(self, _boundsItem, _x, _y);
+end
+
+local HAND_PARK_Y = -1000;
+
+local function findHandTooltipEntries(self)
+    if not self.mouseOverList then
+        return nil, nil;
+    end
+    local primary, secondary;
+    local primaryText = getText("IGUI_PrimaryTooltip");
+    local secondaryText = getText("IGUI_SecondaryTooltip");
+    for _, entry in ipairs(self.mouseOverList) do
+        if entry.displayString == primaryText and primary == nil and entry.object.getIsVisible == nil then
+            primary = entry;
+        elseif entry.displayString == secondaryText and secondary == nil and entry.object.getIsVisible == nil then
+            secondary = entry;
+        end
+    end
+    return primary, secondary;
+end
+
+local function updateAnchoredPopups(self)
+    local anchorDelta = 0;
+    if self.hudHandsHidden == true then
+        anchorDelta = -self.hudShiftOffset;
+    elseif self.hudShiftOffset then
+        anchorDelta = self.hudShiftOffset;
+    end
+
+    if anchorDelta ~= 0 then
+        if self.movablePopup then
+            self.movablePopup:setY(self.movablePopup:getY() + anchorDelta);
+        end
+        if self.movableTooltip then
+            self.movableTooltip:setY(self.movableTooltip:getY() + anchorDelta);
+        end
+        if self.mapPopup then
+            self.mapPopup:setY(self.mapPopup:getY() + anchorDelta);
+        end
+        if self.connectionBaseY then
+            self.connectionBaseY = self.connectionBaseY + anchorDelta;
+        end
+    end
+end
+
+local function updateHandSlots(self)
+    local handsHidden = HotbarReskin and SurvivalHUD.ShowHandSlots;
+    if self.hudHandsHidden == handsHidden then
+        return;
+    end
+    if self.hudHandsHidden == true then
+        for _, child in pairs(self:getChildren()) do
+            if child.hudBaseY then
+                child:setY(child.hudBaseY);
+            end
+        end
+        self.mainHand:setY(self.mainHand.hudBaseY);
+        self.offHand:setY(self.offHand.hudBaseY);
+        self:setHeight(self.hudBaseHeight);
+        self.hudBaseYAssigned = false;
+    end
+    if handsHidden then
+        if not self.hudBaseYAssigned then
+            for _, child in pairs(self:getChildren()) do
+                child.hudBaseY = child:getY();
+            end
+            self.mainHand.hudBaseY = self.mainHand:getY();
+            self.offHand.hudBaseY = self.offHand:getY();
+            self.hudBaseHeight = self:getHeight();
+            local primaryTooltip, secondaryTooltip = findHandTooltipEntries(self);
+            if primaryTooltip then
+                primaryTooltip.object.hudHandTooltip = true;
+            end
+            if secondaryTooltip then
+                secondaryTooltip.object.hudHandTooltip = true;
+            end
+            self.hudBaseYAssigned = true;
+        end
+
+        local children = self:getChildren();
+        local belowTop = nil;
+        for _, child in pairs(children) do
+            if child ~= self.mainHand and child ~= self.offHand and child:getY() > self.offHand:getBottom() then
+                if belowTop == nil or child:getY() < belowTop then
+                    belowTop = child:getY();
+                end
+            end
+        end
+        if belowTop then
+            local offset = belowTop - self.mainHand:getY();
+            self.hudShiftOffset = offset;
+
+            self.mainHand:setY(HAND_PARK_Y);
+            self.offHand:setY(HAND_PARK_Y);
+            for _, child in pairs(children) do
+                if child ~= self.mainHand and child ~= self.offHand then
+                    child:setY(child:getY() - offset);
+                end
+            end
+            self:setHeight(self:getHeight() - offset);
+        end
+    end
+    self.hudHandsHidden = handsHidden;
+    updateAnchoredPopups(self);
 end
 
 function ISEquippedItem:shrinkWrap()
@@ -163,6 +273,8 @@ end)
 
 local original_ISEquippedItem_prerender = ISEquippedItem.prerender;
 function ISEquippedItem:prerender()
+    updateHandSlots(self);
+
     local adminBtn = self.adminBtn;
     local warManagerBtn = self.warManagerBtn;
     self.adminBtn = nil;
