@@ -255,20 +255,7 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
 
     self:shrinkWrap();
 
-    if self.healthBtn then
-        self.perksBtn = ISButton:new(0, self.healthBtn:getY(), TEXTURE_WIDTH, TEXTURE_HEIGHT, "", self, ISEquippedItem.onOptionMouseDown);
-        self.perksBtn:setImage(self.perksIconOff);
-        self.perksBtn.internal = "PERKS";
-        self.perksBtn:initialise();
-        self.perksBtn:instantiate();
-        self.perksBtn:setDisplayBackground(false);
-        self.perksBtn.borderColor = { r = 1, g = 1, b = 1, a = 0.1 };
-        self.perksBtn:ignoreWidthChange();
-        self.perksBtn:ignoreHeightChange();
-        self.perksBtn:setVisible(false);
-        self:addChild(self.perksBtn);
-        self:addMouseOverToolTipItem(self.perksBtn, getText("IGUI_XP_Skills"));
-    end
+    self:updateTooltipText(getText("IGUI_XP_Skills"));
 end)
 
 local original_ISEquippedItem_prerender = ISEquippedItem.prerender;
@@ -281,55 +268,6 @@ function ISEquippedItem:prerender()
     self.warManagerBtn = nil;
 
     local infoPanel = getPlayerInfoPanel(self.playerNum);
-    if self.perksBtn then
-        self.perksBtn:setY(self.healthBtn:getY());
-        self.perksBtn:setX(self.healthBtn:getWidth() + GAP);
-
-        local isSkillsActive = isTabActive(infoPanel, getText("IGUI_XP_Skills"));
-        if isSkillsActive then
-            self.perksBtn:setImage(self.perksIconOn);
-        else
-            self.perksBtn:setImage(self.perksIconOff);
-        end
-
-        local zoneX = self.healthBtn:getAbsoluteX() - GAP / 2;
-        local zoneY = self.healthBtn:getAbsoluteY() - GAP / 2;
-        local zoneW = self.healthBtn:getWidth() + GAP + self.perksBtn:getWidth() + GAP;
-        local zoneH = self.healthBtn:getHeight() + GAP;
-
-        local mx, my = getMouseX(), getMouseY();
-        local isOverZone = mx >= zoneX and mx <= zoneX + zoneW and my >= zoneY and my <= zoneY + zoneH;
-
-        local showPerks = false;
-        if isSkillsActive then
-            showPerks = true;
-            self.perksPopupShown = true;
-        elseif self.perksPopupShown then
-            if isOverZone then
-                showPerks = true;
-            else
-                self.perksPopupShown = false;
-            end
-        else
-            if self.healthBtn:isMouseOver() then
-                showPerks = true;
-                self.perksPopupShown = true;
-            end
-        end
-
-        if showPerks and self.healthIconOscillatorLevel > 0.05 then
-            showPerks = false;
-        end
-
-        self.perksBtn:setVisible(showPerks);
-
-        if showPerks then
-            local perksRight = self.perksBtn:getX() + self.perksBtn:getWidth();
-            if self:getWidth() < perksRight then
-                self:setWidth(perksRight);
-            end
-        end
-    end
 
     original_ISEquippedItem_prerender(self);
 
@@ -337,12 +275,11 @@ function ISEquippedItem:prerender()
     self.warManagerBtn = warManagerBtn;
 
     if self.healthBtn then
-        if isTabActive(infoPanel, getText("IGUI_XP_Health")) then
-            self.healthBtn:setImage(self.heartIconOn);
+        if isTabActive(infoPanel, getText("IGUI_XP_Skills")) then
+            self.healthBtn:setImage(self.perksIconOn);
         else
-            self.healthBtn:setImage(self.heartIconOff);
+            self.healthBtn:setImage(self.perksIconOff);
         end
-        self:updateTooltipText(getText("IGUI_HealthTooltip"));
     end
 
     if self.connectionBtn then
@@ -464,9 +401,6 @@ function ISEquippedItem:prerender()
         self.connectionBtn:setVisible(not hasWar or showPopup);
 
         local expandedWidth = TEXTURE_WIDTH;
-        if self.perksBtn and self.perksBtn:getIsVisible() then
-            expandedWidth = math.max(expandedWidth, self.perksBtn:getX() + self.perksBtn:getWidth());
-        end
         if showPopup then
             local rightmost = expandedWidth;
             if self.connectionBtn and self.connectionBtn:getIsVisible() then
@@ -497,7 +431,7 @@ end
 
 local original_ISEquippedItem_onOptionMouseDown = ISEquippedItem.onOptionMouseDown;
 function ISEquippedItem:onOptionMouseDown(button, x, y)
-    if button.internal == "PERKS" then
+    if button.internal == "HEALTH" then
         if self.infopanel then
             self.infopanel:toggleView(getText("IGUI_XP_Skills"));
         end
@@ -505,3 +439,9 @@ function ISEquippedItem:onOptionMouseDown(button, x, y)
         original_ISEquippedItem_onOptionMouseDown(self, button, x, y);
     end
 end
+
+Functions.PostHook.Add(ISEquippedItem, "render", function(self)
+    if self.healthBtn then
+        self.healthBtn:setX(0);
+    end
+end)
