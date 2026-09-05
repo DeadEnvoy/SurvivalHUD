@@ -136,17 +136,16 @@ local GROUPS = {
     { icons = { "Intoxication", "Sickness", "Health" } },
 };
 
-local ICON_GAP = {
-    [48] = 14,
-    [64] = 16,
-    [80] = 18,
-};
+local ICON_GAP_BASE = 16;
+local GROUP_GAP_BASE = 40;
 
-local GROUP_GAP = {
-    [48] = 32,
-    [64] = 40,
-    [80] = 48,
-};
+local function getIconGap(size)
+    return math.floor(ICON_GAP_BASE * size / 64 + 0.5);
+end
+
+local function getGroupGap(size)
+    return math.floor(GROUP_GAP_BASE * size / 64 + 0.5);
+end
 
 local ICON_VISUAL_PADDING = {
     Fatigue = { left = 0.23, right = 0.23 },
@@ -582,7 +581,7 @@ function SurvivalHUD:resolveCollisionWith(ui, isIntoxicationVisible, isSicknessV
             self:setX(screenW - self:getWidth() - RIGHT_OFFSET);
             self:setY(screenH - BOTTOM_OFFSET - CURRENT_ICON_SIZE);
         elseif HotbarReskin and ui.availableSlot then
-            local nextHotbarSize = Utils.getNextSmallerSize(Utils.COLLISION_SIZES, HotbarReskin.CURRENT_HOTBAR_SIZE);
+            local nextHotbarSize = Utils.getNextSmallerSize(Utils.CollisionSizes, HotbarReskin.CURRENT_HOTBAR_SIZE);
             if not nextHotbarSize then break; end
             HotbarReskin.CURRENT_HOTBAR_SIZE = nextHotbarSize;
             Utils.layoutHotbar(ui);
@@ -670,7 +669,7 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
             for j = 2, #icons do
                 local _, rp = self:getIconPadPx(icons[j - 1]);
                 local lp, _ = self:getIconPadPx(icons[j]);
-                groupW = groupW + size - rp - lp + (ICON_GAP[size] or 4);
+                groupW = groupW + size - rp - lp + getIconGap(size);
             end
             groupWidths[i] = groupW;
             totalW = totalW + groupW;
@@ -687,7 +686,7 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
                     local icons_j = groupIcons[j];
                     local _, lastRight = self:getIconPadPx(icons_i[#icons_i]);
                     local firstLeft, _ = self:getIconPadPx(icons_j[1]);
-                    totalW = totalW + (GROUP_GAP[size] or 16) - lastRight - firstLeft;
+                    totalW = totalW + getGroupGap(size) - lastRight - firstLeft;
                     break;
                 end
             end
@@ -1104,7 +1103,7 @@ function SurvivalHUD:render()
                 if j > 1 then
                     local _, prevRight = self:getIconPadPx(icons[j - 1]);
                     local curLeft, _ = self:getIconPadPx(statType);
-                    iconX = iconX + size - prevRight - curLeft + (ICON_GAP[size] or 4);
+                    iconX = iconX + size - prevRight - curLeft + getIconGap(size);
                 end
                 self:drawStatusIcon(iconX, 0, statType, vals[statType], globalAlpha);
             end
@@ -1118,7 +1117,7 @@ function SurvivalHUD:render()
                         local _, lastRight = self:getIconPadPx(icons[#icons]);
                         local firstLeft, _ = self:getIconPadPx(nextIcons[1]);
 
-                        local nextGroupStart = curX + (GROUP_GAP[size] or 16) - lastRight - firstLeft;
+                        local nextGroupStart = curX + getGroupGap(size) - lastRight - firstLeft;
                         self:drawGroupSeparator(size, curX - lastRight, nextGroupStart + firstLeft, globalAlpha * 0.5);
 
                         curX = nextGroupStart;
@@ -1186,7 +1185,7 @@ function EnduranceUI:updateLayout()
     self:setWidth(totalW);
     self:setHeight(math.max(self.barH, self.iconSize));
     self:setX(20);
-    self:setY(getCore():getScreenHeight() - 40 - self.barH);
+    self:setY(getCore():getScreenHeight() - 15 - self:getHeight());
 end
 
 function EnduranceUI:getPhase(val)

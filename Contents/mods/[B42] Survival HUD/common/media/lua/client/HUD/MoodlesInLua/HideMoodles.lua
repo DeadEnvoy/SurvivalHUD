@@ -15,7 +15,7 @@ local HIDDEN_MOODLES = {
 };
 
 if ISMoodlesInLua and ISMoodlesInLua.render then
-    ISMoodlesInLua.render = function(self)
+    function ISMoodlesInLua.render(self)
         if not self.active then
             return;
         end
@@ -45,7 +45,7 @@ if ISMoodlesInLua and ISMoodlesInLua.render then
                 local moodleLevel = moodles:getMoodleLevel(moodleType);
                 local goodBadNeutralId = moodles:getGoodBadNeutral(moodleType);
 
-                if moodleLevel ~= 0 and moodleType ~= MoodleType.FOOD_EATEN or moodleLevel >= 3 then
+                if moodleLevel ~= 0 then
                     local deltaTime = UIManager.getMillisSinceLastUpdate() / 1000;
 
                     local prevLevel = self.previousMoodleLevels[tostring(moodleType)] or 0;
@@ -138,63 +138,31 @@ if ISMoodlesInLua and ISMoodlesInLua.render then
             end
         end
     end
-end
+    if hasMF and (MF and MF.ISMoodle) then
+        local originalGetXYPosition = MF.ISMoodle.getXYPosition;
 
-if hasMF and (MF and MF.ISMoodle) then
-    function MF.ISMoodle:getXYPosition()
-        local size = MF.getSize();
-        if size ~= self.width then
-            self:setWidth(size);
-            self:updateTextures(size);
-        end
+        function MF.ISMoodle:getXYPosition()
+            local x, y = originalGetXYPosition(self);
+            if self.disable or self:getLevel() == 0 then
+                return x, y;
+            end
 
-        local x = getPlayerScreenLeft(self.playerNum) + getPlayerScreenWidth(self.playerNum) - MF.xOffset - self:getWidth();
-        local y = getPlayerScreenTop(self.playerNum) + MF.yOffset;
-        local distY = 10 + MF.defaultWidth * MF.scale;
+            local distY = 10 + MF.defaultWidth * MF.scale;
+            local hiddenVisible = 0;
 
-        if self.disable then
-            return x, y;
-        end
-
-        if self:getLevel() ~= 0 then
+            local moodles = self.char:getMoodles();
             local moodlesValuesForType = Registries.MOODLE_TYPE:values();
-            local numMoodles = moodlesValuesForType:size();
-
-            for i = 0, numMoodles - 1 do
+            for i = 0, moodlesValuesForType:size() - 1 do
                 local moodleType = moodlesValuesForType:get(i);
-
-                if not HIDDEN_MOODLES[moodleType] then
-                    local moodleLevel = self.char:getMoodles():getMoodleLevel(moodleType);
-                    if moodleLevel ~= 0 and moodleType ~= MoodleType.FOOD_EATEN or moodleLevel >= 3 then
-                        y = y + distY;
+                local moodleLevel = moodles:getMoodleLevel(moodleType);
+                if HIDDEN_MOODLES[moodleType] and moodleLevel ~= 0 then
+                    if moodleType ~= MoodleType.FOOD_EATEN or moodleLevel >= 3 then
+                        hiddenVisible = hiddenVisible + 1;
                     end
                 end
             end
 
-            local aiteronMM = self.char:getModData().MoodleManager;
-            if aiteronMM and aiteronMM.moodles then
-                for _, moodleObj in pairs(aiteronMM.moodles) do
-                    if moodleObj.getLevel then
-                        local lvl = moodleObj:getLevel();
-                        if lvl > 0 then
-                            y = y + distY;
-                        end
-                    end
-                end
-            end
-
-            local _, allMoodles = self:getMoodleData();
-            for k, v in pairs(allMoodles) do
-                if k == self.name then
-                    break;
-                else
-                    if v.Level ~= 0 then
-                        y = y + distY;
-                    end
-                end
-            end
+            return x, y - hiddenVisible * distY;
         end
-
-        return x, y;
     end
 end
