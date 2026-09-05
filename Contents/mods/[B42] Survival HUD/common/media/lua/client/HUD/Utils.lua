@@ -17,18 +17,6 @@ function Utils.getNextSmallerSize(sizes, currentSize)
 	return nil;
 end
 
-function Utils.layoutHotbar(hotbar)
-	local count = math.max(#hotbar.availableSlot, 1);
-	local w = HotbarReskin.calcTotalWidth(count);
-	local h = HotbarReskin.getHeight();
-	hotbar:setWidth(w);
-	hotbar:setHeight(h);
-	local screenW = getCore():getScreenWidth();
-	local screenH = getCore():getScreenHeight();
-	hotbar:setX(math.floor((screenW - w) / 2));
-	hotbar:setY(screenH - h - 15);
-end
-
 function Utils.clamp100(x)
 	return math.max(0, math.min(100, x));
 end

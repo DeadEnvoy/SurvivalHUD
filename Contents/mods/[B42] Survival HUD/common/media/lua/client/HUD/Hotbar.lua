@@ -513,8 +513,20 @@ function ISHotbar:render()
     end
 end
 
+function ISHotbar:layoutHotbar()
+    local count = math.max(#self.availableSlot, 1);
+    local w = HotbarReskin.calcTotalWidth(count);
+    local h = HotbarReskin.getHeight();
+    self:setWidth(w);
+    self:setHeight(h);
+    local screenW = getCore():getScreenWidth();
+    local screenH = getCore():getScreenHeight();
+    self:setX(math.floor((screenW - w) / 2));
+    self:setY(screenH - h - 15);
+end
+
 function ISHotbar:setSizeAndPosition()
-    Utils.layoutHotbar(self);
+    self:layoutHotbar();
 end
 
 local original_new = ISHotbar.new;

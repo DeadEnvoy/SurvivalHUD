@@ -149,12 +149,12 @@ end
 
 local ICON_VISUAL_PADDING = {
     Fatigue = { left = 0.23, right = 0.23 },
-    Thirst = { left = 0.28, right = 0.28 },
-    Hunger = { left = 0.14, right = 0.14 },
+    Thirst = { left = 0.30, right = 0.30 },
+    Hunger = { left = 0.08, right = 0.08 },
     Temperature  = { left = 0.30, right = 0.30 },
     Intoxication = { left = 0.025, right = 0.025 },
-    Sickness = { left = 0.025, right = 0.025 },
-    Health = { left = 0.025, right = 0.025 },
+    Sickness = { left = 0.05, right = 0.05 },
+    Health = { left = 0.05, right = 0.05 },
 };
 
 local DEBUG_PADDING = false;
@@ -584,7 +584,7 @@ function SurvivalHUD:resolveCollisionWith(ui, isIntoxicationVisible, isSicknessV
             local nextHotbarSize = Utils.getNextSmallerSize(Utils.CollisionSizes, HotbarReskin.CURRENT_HOTBAR_SIZE);
             if not nextHotbarSize then break; end
             HotbarReskin.CURRENT_HOTBAR_SIZE = nextHotbarSize;
-            Utils.layoutHotbar(ui);
+            ui:layoutHotbar();
         else
             break;
         end
@@ -610,7 +610,7 @@ function SurvivalHUD:updateLayout(isIntoxicationVisible, isSicknessVisible)
     CURRENT_ICON_SIZE = SurvivalHUD.ICON_SIZE;
     if HotbarReskin and hotbar then
         HotbarReskin.CURRENT_HOTBAR_SIZE = HotbarReskin.HOTBAR_SIZE;
-        Utils.layoutHotbar(hotbar);
+        hotbar:layoutHotbar();
     end
     self:recalcDimensions(isIntoxicationVisible, isSicknessVisible);
 
