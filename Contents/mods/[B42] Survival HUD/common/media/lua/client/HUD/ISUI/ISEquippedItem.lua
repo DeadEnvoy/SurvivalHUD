@@ -69,8 +69,8 @@ local function updateAnchoredPopups(self)
         if self.mapPopup then
             self.mapPopup:setY(self.mapPopup:getY() + anchorDelta);
         end
-        if self.connectionBaseY then
-            self.connectionBaseY = self.connectionBaseY + anchorDelta;
+        if self.clientBaseY then
+            self.clientBaseY = self.clientBaseY + anchorDelta;
         end
     end
 end
@@ -172,8 +172,6 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
 
     self.perksIconOn = getTexture("media/ui/Sidebar/" .. TEXTURE_WIDTH .. "/Perks_On_" .. TEXTURE_WIDTH .. ".png");
     self.perksIconOff = getTexture("media/ui/Sidebar/" .. TEXTURE_WIDTH .. "/Perks_Off_" .. TEXTURE_WIDTH .. ".png");
-    self.connectionIconOn = getTexture("media/ui/Sidebar/" .. TEXTURE_WIDTH .. "/Connection_Icon_On_" .. TEXTURE_WIDTH .. ".png");
-    self.connectionIconOff = getTexture("media/ui/Sidebar/" .. TEXTURE_WIDTH .. "/Connection_Icon_Off_" .. TEXTURE_WIDTH .. ".png");
 
     if self.clientBtn then
         local btnX = self.clientBtn:getX();
@@ -181,39 +179,23 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
         local btnW = self.clientBtn:getWidth();
         local btnH = self.clientBtn:getHeight();
 
-        self:removeChild(self.clientBtn);
-        self.clientBtn = nil;
-
-        local newH = btnH;
         local newW = btnH;
         local newX = btnX + (btnW - btnH) / 2;
 
-        self.connectionBtn = ISButton:new(newX, btnY, newW, newH, "", self, ISEquippedItem.onOptionMouseDown);
-        self.connectionBtn:setImage(self.connectionIconOff);
-        self.connectionBtn.internal = "USERPANEL";
-        self.connectionBtn:initialise();
-        self.connectionBtn:instantiate();
-        self.connectionBtn:setDisplayBackground(false);
-        self.connectionBtn.borderColor = { r = 1, g = 1, b = 1, a = 0.1 };
-        self.connectionBtn:ignoreWidthChange();
-        self.connectionBtn:ignoreHeightChange();
-        self:addChild(self.connectionBtn);
-        self:addMouseOverToolTipItem(self.connectionBtn, getText("IGUI_ServerPanel"));
+        self.clientBtn:setX(newX);
+        self.clientBtn:setWidth(newW);
 
-        self.connectionPopupShown = false;
+        self.clientPopupShown = false;
 
         if self.adminBtn then
             self.adminBtn:setWidth(newW);
-            self.adminBtn:setHeight(newH);
             self.adminBtn:setX(newX + newW + GAP);
             self.adminBtn:setY(btnY);
             self.adminBtn:setVisible(false);
-            self:addMouseOverToolTipItem(self.adminBtn, getText("IGUI_AdminPanel_Title"));
         end
 
         if self.warManagerBtn then
             self.warManagerBtn:setWidth(newW);
-            self.warManagerBtn:setHeight(newH);
             if self.adminBtn then
                 self.warManagerBtn:setX(self.adminBtn:getX() + self.adminBtn:getWidth() + GAP);
             else
@@ -221,7 +203,6 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
             end
             self.warManagerBtn:setY(btnY);
             self.warManagerBtn:setVisible(false);
-            self:addMouseOverToolTipItem(self.warManagerBtn, getText("IGUI_WarManager_Title"));
         end
     end
 
@@ -247,10 +228,20 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
         end
     end
 
-    if self.connectionBtn then
-        self.connectionBaseX = self.connectionBtn:getX();
-        self.connectionBaseY = self.connectionBtn:getY();
-        self.connectionBaseW = self.connectionBtn:getWidth();
+    if self.clientBtn then
+        self.clientBaseX = self.clientBtn:getX();
+        self.clientBaseY = self.clientBtn:getY();
+        self.clientBaseW = self.clientBtn:getWidth();
+    end
+
+    if self.clientBtn then
+        self:addMouseOverToolTipItem(self.clientBtn, getText("IGUI_UserPanelTooltip"));
+    end
+    if self.adminBtn then
+        self:addMouseOverToolTipItem(self.adminBtn, getText("IGUI_AdminPanelTooltip"));
+    end
+    if self.warManagerBtn then
+        self:addMouseOverToolTipItem(self.warManagerBtn, getText("IGUI_WarManagerTooltip"));
     end
 
     self:shrinkWrap();
@@ -282,35 +273,29 @@ function ISEquippedItem:prerender()
         end
     end
 
-    if self.connectionBtn then
+    if self.clientBtn then
         local war = isClient() and getWarNearest() or nil;
         local hasWar = war ~= nil;
 
         local buttons = {};
         if hasWar then
             table.insert(buttons, self.warManagerBtn);
-            table.insert(buttons, self.connectionBtn);
+            table.insert(buttons, self.clientBtn);
         else
-            table.insert(buttons, self.connectionBtn);
+            table.insert(buttons, self.clientBtn);
         end
         if self.adminBtn then
             table.insert(buttons, self.adminBtn);
         end
         local parentBtn = buttons[1];
 
-        local btnX = self.connectionBaseX;
-        local btnY = self.connectionBaseY;
-        local btnW = self.connectionBaseW;
+        local btnX = self.clientBaseX;
+        local btnY = self.clientBaseY;
+        local btnW = self.clientBaseW;
 
         for i, btn in ipairs(buttons) do
             btn:setX(btnX + (btnW + GAP) * (i - 1));
             btn:setY(btnY);
-        end
-
-        if ISUserPanelUI.instance then
-            self.connectionBtn:setImage(self.connectionIconOn);
-        else
-            self.connectionBtn:setImage(self.connectionIconOff);
         end
 
         if war and self.warManagerBtn then
@@ -341,7 +326,7 @@ function ISEquippedItem:prerender()
 
         local zoneW = btnW;
         if hasWar then
-            zoneW = zoneW + GAP + self.connectionBtn:getWidth();
+            zoneW = zoneW + GAP + self.clientBtn:getWidth();
             if adminAllowed and self.adminBtn then
                 zoneW = zoneW + GAP + self.adminBtn:getWidth();
             end
@@ -357,23 +342,22 @@ function ISEquippedItem:prerender()
         local mx, my = getMouseX(), getMouseY();
         local isOverZone = mx >= zoneX and mx <= zoneX + zoneW and my >= zoneY and my <= zoneY + zoneH;
 
-        local isAnyWindowOpen = ISAdminPanelUI.instance ~= nil or ISWarManagerUI.instance ~= nil
-            or ISUserPanelUI.instance ~= nil;
+        local isAnyWindowOpen = ISAdminPanelUI.instance ~= nil or ISWarManagerUI.instance ~= nil or ISUserPanelUI.instance ~= nil;
 
         local showPopup = false;
         if isAnyWindowOpen then
             showPopup = true;
-            self.connectionPopupShown = true;
-        elseif self.connectionPopupShown then
+            self.clientPopupShown = true;
+        elseif self.clientPopupShown then
             if isOverZone then
                 showPopup = true;
             else
-                self.connectionPopupShown = false;
+                self.clientPopupShown = false;
             end
         else
             if parentBtn:isMouseOver() then
                 showPopup = true;
-                self.connectionPopupShown = true;
+                self.clientPopupShown = true;
             end
         end
 
@@ -398,13 +382,13 @@ function ISEquippedItem:prerender()
             end
         end
 
-        self.connectionBtn:setVisible(not hasWar or showPopup);
+        self.clientBtn:setVisible(not hasWar or showPopup);
 
         local expandedWidth = TEXTURE_WIDTH;
         if showPopup then
             local rightmost = expandedWidth;
-            if self.connectionBtn and self.connectionBtn:getIsVisible() then
-                rightmost = math.max(rightmost, self.connectionBtn:getX() + self.connectionBtn:getWidth());
+            if self.clientBtn and self.clientBtn:getIsVisible() then
+                rightmost = math.max(rightmost, self.clientBtn:getX() + self.clientBtn:getWidth());
             end
             if self.adminBtn and self.adminBtn:getIsVisible() then
                 rightmost = math.max(rightmost, self.adminBtn:getX() + self.adminBtn:getWidth());
