@@ -11,11 +11,20 @@ HotbarReskin = {};
 HotbarReskin.HOTBAR_SIZE = 64;
 HotbarReskin.CURRENT_HOTBAR_SIZE = 64;
 
-local HOTBAR_PAD = 8;
 local HOTBAR_MARGIN = 0;
 
-local SEP_SIZE = 40;
 local DRAG_THRESHOLD = 5;
+
+local HOTBAR_PAD_BASE = 8;
+local SEP_SIZE_BASE = 40;
+
+local function getHotbarPad()
+    return math.floor(HOTBAR_PAD_BASE * HotbarReskin.CURRENT_HOTBAR_SIZE / 64 + 0.5);
+end
+
+local function getSepSize()
+    return math.floor(SEP_SIZE_BASE * HotbarReskin.CURRENT_HOTBAR_SIZE / 64 + 0.5);
+end
 
 local function getSlotTexture(textureName)
     local size = HotbarReskin.CURRENT_HOTBAR_SIZE;
@@ -27,14 +36,17 @@ local function getHandTexture(textureName)
     return getTexture("media/ui/Hotbar/" .. size .. "/Hand/" .. textureName .. ".png");
 end
 
-local function getFitSize(tex, maxSide)
-    local w = tex:getWidth();
-    local h = tex:getHeight();
-    if w <= maxSide and h <= maxSide then
-        return w, h;
+local ITEM_BASE_MAX_SIDE = 56;
+
+local function getItemDrawSize(tex, slotScale)
+    local w, h = tex:getWidth(), tex:getHeight();
+    local maxDim = math.max(w, h);
+    if maxDim > ITEM_BASE_MAX_SIDE then
+        local ratio = ITEM_BASE_MAX_SIDE / maxDim;
+        w = w * ratio;
+        h = h * ratio;
     end
-    local ratio = maxSide / math.max(w, h);
-    return math.floor(w * ratio + 0.5), math.floor(h * ratio + 0.5);
+    return math.floor(w * slotScale + 0.5), math.floor(h * slotScale + 0.5);
 end
 
 local CONDITION_PHASES = {
@@ -81,15 +93,98 @@ local function getBestConditionTexture(conditionPercent, currentTexVal)
     return bestVal, phase;
 end
 
-local function getConditionTexture(conditionPercent, currentTexVal, kind)
+local function getConditionTexture(conditionPercent, currentTexVal, kind, isFluid)
     local size = HotbarReskin.CURRENT_HOTBAR_SIZE;
     local texVal, phase = getBestConditionTexture(conditionPercent, currentTexVal ~= nil and currentTexVal or -1);
     if not texVal or not phase then return nil, nil; end
     local phaseLevel = phase[3];
-    return getTexture("media/ui/Hotbar/" .. size .. "/" .. kind .. "/" .. kind .. "_" .. phaseLevel .. "_" .. texVal .. ".png"), texVal;
+    local fluids = isFluid and "/Fluids" or "";
+    local tex = getTexture("media/ui/Hotbar/" .. size .. "/" .. kind .. fluids .. "/" .. kind .. "_" .. phaseLevel .. "_" .. texVal .. ".png");
+    return tex, texVal;
 end
 
-local function getItemConditionPercent(item)
+local BATTERY_OFF_TINT = 0.5;
+
+local FLUID_MIN_LIGHTNESS = 55;
+
+local function srgbToLinear(c)
+    if c > 0.04045 then
+        return ((c + 0.055) / 1.055) ^ 2.4;
+    end
+    return c / 12.92;
+end
+
+local function linearToSrgb(c)
+    if c > 0.0031308 then
+        return 1.055 * c ^ 0.41666666 - 0.055;
+    end
+    return c * 12.92;
+end
+
+local function clamp01(v)
+    if v < 0 then return 0; end
+    if v > 1 then return 1; end
+    return v;
+end
+
+local function getFluidTint(color)
+    local r = srgbToLinear(color:getR());
+    local g = srgbToLinear(color:getG());
+    local b = srgbToLinear(color:getB());
+    r, g, b = r * 100, g * 100, b * 100;
+
+    local x = r * 0.412453 + g * 0.35758 + b * 0.180423;
+    local y = r * 0.212671 + g * 0.71516 + b * 0.072169;
+    local z = r * 0.019334 + g * 0.119193 + b * 0.950227;
+    x, y, z = x / 95.047, y / 100.0, z / 108.883;
+
+    local f = function(t)
+        if t > 0.008856 then
+            return t ^ 0.3333333333333333;
+        end
+        return t * 7.787 + 0.13793103;
+    end
+    x, y, z = f(x), f(y), f(z);
+
+    local labL = 116.0 * y - 16.0;
+    local labA = 500.0 * (x - y);
+    local labB = 200.0 * (y - z);
+
+    if labL >= FLUID_MIN_LIGHTNESS then
+        return color:getR(), color:getG(), color:getB();
+    end
+
+    local chroma = math.sqrt(labA * labA + labB * labB);
+    ---@diagnostic disable-next-line: deprecated
+    local hue = math.atan2(labB, labA);
+
+    labL = FLUID_MIN_LIGHTNESS;
+    labA = chroma * math.cos(hue);
+    labB = chroma * math.sin(hue);
+
+    y = (labL + 16.0) / 116.0;
+    x = labA / 500.0 + y;
+    z = y - labB / 200.0;
+    local xyz = { x, y, z };
+    for i = 1, 3 do
+        if xyz[i] > 0.20689656 then
+            xyz[i] = xyz[i] * xyz[i] * xyz[i];
+        else
+            xyz[i] = 0.12841856 * (xyz[i] - 0.13793103);
+        end
+    end
+    xyz[1] = xyz[1] * 95.047;
+    xyz[2] = xyz[2] * 100.0;
+    xyz[3] = xyz[3] * 108.883;
+
+    local lr = (xyz[1] * 3.240479 + xyz[2] * -1.53715 + xyz[3] * -0.498535) / 100.0;
+    local lg = (xyz[1] * -0.969256 + xyz[2] * 1.875992 + xyz[3] * 0.041556) / 100.0;
+    local lb = (xyz[1] * 0.055648 + xyz[2] * -0.204043 + xyz[3] * 1.057311) / 100.0;
+
+    return clamp01(linearToSrgb(lr)), clamp01(linearToSrgb(lg)), clamp01(linearToSrgb(lb));
+end
+
+local function getItemConditionPercent(item, includeOffState)
     if instanceof(item, "HandWeapon") then
         local maxCond = item:getConditionMax();
         if maxCond and maxCond > 0 then
@@ -103,14 +198,40 @@ local function getItemConditionPercent(item)
                 end
             end
             ratio = math.max(0, math.min(1, ratio));
-            return math.floor(ratio * 100 + 0.5);
+            return math.floor(ratio * 100 + 0.5), 1, 1, 1, 1;
         end
-    elseif instanceof(item, "DrainableComboItem") and item:canBeActivated() and item:isActivated() then
-        return math.floor(item:getCurrentUsesFloat() * 100 + 0.5);
     elseif instanceof(item, "Radio") then
         local deviceData = item:getDeviceData();
-        if deviceData and deviceData:getIsTurnedOn() and deviceData:getIsBatteryPowered() and deviceData:getHasBattery() then
-            return math.floor(deviceData:getPower() * 100 + 0.5);
+        if deviceData and deviceData:getIsBatteryPowered() and deviceData:getHasBattery() then
+            local percent = math.floor(deviceData:getPower() * 100 + 0.5);
+            if percent <= 0 then
+                return nil;
+            end
+            if deviceData:getIsTurnedOn() then
+                return percent, 1, 1, 1, 1;
+            end
+            if includeOffState then
+                return percent, BATTERY_OFF_TINT, BATTERY_OFF_TINT, BATTERY_OFF_TINT, 1;
+            end
+        end
+    elseif instanceof(item, "DrainableComboItem") and item:canBeActivated() then
+        local percent = math.floor(item:getCurrentUsesFloat() * 100 + 0.5);
+        if percent <= 0 then
+            return nil;
+        end
+        if item:isActivated() then
+            return percent, 1, 1, 1, 1;
+        end
+        if includeOffState then
+            return percent, BATTERY_OFF_TINT, BATTERY_OFF_TINT, BATTERY_OFF_TINT, 1;
+        end
+    end
+    if item:hasComponent(ComponentType.FluidContainer) then
+        local fluidContainer = item:getFluidContainer();
+        if fluidContainer and not fluidContainer:isEmpty() then
+            local color = fluidContainer:getColor();
+            local tintR, tintG, tintB = getFluidTint(color);
+            return math.floor(fluidContainer:getAmount() / fluidContainer:getCapacity() * 100 + 0.5), tintR, tintG, tintB, 1;
         end
     end
     return nil;
@@ -119,13 +240,13 @@ end
 local dragPreviewUI = nil;
 
 local function getMainWidth(slotCount)
-    return slotCount * HotbarReskin.CURRENT_HOTBAR_SIZE + (slotCount - 1) * HOTBAR_PAD;
+    return slotCount * HotbarReskin.CURRENT_HOTBAR_SIZE + (slotCount - 1) * getHotbarPad();
 end
 
 function HotbarReskin.calcTotalWidth(slotCount)
     local mainW = getMainWidth(slotCount);
     if SurvivalHUD.ShowHandSlots then
-        return HotbarReskin.CURRENT_HOTBAR_SIZE + SEP_SIZE + mainW + SEP_SIZE + HotbarReskin.CURRENT_HOTBAR_SIZE;
+        return HotbarReskin.CURRENT_HOTBAR_SIZE + getSepSize() + mainW + getSepSize() + HotbarReskin.CURRENT_HOTBAR_SIZE;
     else
         return mainW;
     end
@@ -133,6 +254,26 @@ end
 
 function HotbarReskin.getHeight()
     return HotbarReskin.CURRENT_HOTBAR_SIZE + HOTBAR_MARGIN * 2;
+end
+
+local function drawConditionOverlay(self, x, y, item, texValCache, cacheKey, kind, includeOffState)
+    local val, tintR, tintG, tintB, overlayAlpha = getItemConditionPercent(item, includeOffState);
+    if not val then return; end
+    val = math.max(0, math.min(100, val));
+    local isFluid = item:hasComponent(ComponentType.FluidContainer);
+    local conTex, newTexVal = getConditionTexture(val, texValCache[cacheKey], kind, isFluid);
+    if newTexVal then texValCache[cacheKey] = newTexVal; end
+    if conTex then
+        self:drawTexture(conTex, x, y, overlayAlpha, tintR, tintG, tintB);
+    end
+end
+
+local function drawSlotLabel(self, x, size, text)
+    local fontHgt = getTextManager():getFontHeight(UIFont.Small);
+    local textWid = getTextManager():MeasureStringX(UIFont.Small, text);
+    local labelX = x + math.floor((size - textWid) / 2);
+    self:drawRect(labelX - 2, -fontHgt, textWid + 4, fontHgt, 0.6, 0, 0, 0);
+    self:drawText(text, labelX, -fontHgt, self.textColor.r, self.textColor.g, self.textColor.b, self.textColor.a, UIFont.Small);
 end
 
 local function drawHandSlot(self, x, item, isSelected, isHovered, isPrimary)
@@ -147,16 +288,7 @@ local function drawHandSlot(self, x, item, isSelected, isHovered, isPrimary)
     end
 
     if showSelected and item then
-        local val = getItemConditionPercent(item);
-        if val then
-            val = math.max(0, math.min(100, val));
-            local key = isPrimary and "primary" or "secondary";
-            local conTex, newTexVal = getConditionTexture(val, self.handTexVal[key], "Hand");
-            if newTexVal then self.handTexVal[key] = newTexVal; end
-            if conTex then
-                self:drawTexture(conTex, x, HOTBAR_MARGIN, 1, 1, 1, 1);
-            end
-        end
+        drawConditionOverlay(self, x, HOTBAR_MARGIN, item, self.handTexVal, isPrimary and "primary" or "secondary", "Hand", true);
     end
 
     if showSelected then
@@ -171,17 +303,12 @@ local function drawHandSlot(self, x, item, isSelected, isHovered, isPrimary)
         if hoverTex then
             self:drawTexture(hoverTex, x, HOTBAR_MARGIN, 0.25, 1, 1, 1);
         end
-        local fontHgt = getTextManager():getFontHeight(UIFont.Small);
-        local slotName = isPrimary and getText("IGUI_PrimaryTooltip") or getText("IGUI_SecondaryTooltip");
-        local textWid = getTextManager():MeasureStringX(UIFont.Small, slotName);
-        local labelX = x + math.floor((size - textWid) / 2);
-        self:drawRect(labelX - 2, -fontHgt, textWid + 4, fontHgt, 0.6, 0, 0, 0);
-        self:drawText(slotName, labelX, -fontHgt, self.textColor.r, self.textColor.g, self.textColor.b, self.textColor.a, UIFont.Small);
+        drawSlotLabel(self, x, size, isPrimary and getText("IGUI_PrimaryTooltip") or getText("IGUI_SecondaryTooltip"));
     end
 
     if item then
         local tex = item:getTexture();
-        local w, h = getFitSize(tex, size - 8);
+        local w, h = getItemDrawSize(tex, size / 64);
         local ix = x + math.floor((size - w) / 2);
         local iy = HOTBAR_MARGIN + math.floor((size - h) / 2);
         self:drawTextureScaled(tex, ix + 1, iy + 1, w, h, 0.25, 0, 0, 0);
@@ -191,8 +318,9 @@ end
 
 local function drawSeparator(self, x)
     local sepCfg = Utils.SeparatorConfig[HotbarReskin.CURRENT_HOTBAR_SIZE];
-    local sepSize = SEP_SIZE;
+    local sepSize = getSepSize();
     local hotbarSize = HotbarReskin.CURRENT_HOTBAR_SIZE;
+    local lineInset = math.floor(4 * hotbarSize / 64 + 0.5);
     if sepCfg then
         local renderSize = sepCfg.renderSize;
         local texSize = sepCfg.texSize;
@@ -201,12 +329,10 @@ local function drawSeparator(self, x)
             local sx = x + math.floor((sepSize - renderSize) / 2);
             local sy = HOTBAR_MARGIN + math.floor((hotbarSize - renderSize) / 2);
             self:drawTextureScaled(sep, sx, sy, renderSize, renderSize, 0.5, 1, 1, 1);
-        else
-            self:drawRect(x + math.floor(sepSize / 2), HOTBAR_MARGIN + 4, 1, hotbarSize - 8, 0.4, 1, 1, 1);
+            return;
         end
-    else
-        self:drawRect(x + math.floor(sepSize / 2), HOTBAR_MARGIN + 4, 1, hotbarSize - 8, 0.4, 1, 1, 1);
     end
+    self:drawRect(x + math.floor(sepSize / 2), HOTBAR_MARGIN + lineInset, 1, hotbarSize - lineInset * 2, 0.4, 1, 1, 1);
 end
 
 local function isMouseBlocked(self)
@@ -229,23 +355,35 @@ local function isMouseBlocked(self)
     return false;
 end
 
+HotbarDragPreview = ISPanel:derive("HotbarDragPreview");
+
+function HotbarDragPreview:prerender()
+end
+
+function HotbarDragPreview:render()
+    if ISHotbar.hotbarDraggingItem then
+        local tex = ISHotbar.hotbarDraggingItem:getTexture();
+        if tex then
+            local w, h = getItemDrawSize(tex, HotbarReskin.CURRENT_HOTBAR_SIZE / 64);
+            local mx = getMouseX() - math.floor(w / 2);
+            local my = getMouseY() - math.floor(h / 2);
+            self:drawTextureScaled(tex, mx, my, w, h, 0.5, 1, 1, 1);
+        end
+    end
+end
+
+function HotbarDragPreview:new()
+    local o = ISPanel:new(0, 0, 1, 1);
+    setmetatable(o, self)
+    self.__index = self
+    o:noBackground();
+    o.suspend = true;
+    return o
+end
+
 local function ensureDragPreviewUI()
     if not dragPreviewUI and ISHotbar.hotbarDraggingItem then
-        dragPreviewUI = ISPanel:new(0, 0, 1, 1);
-        dragPreviewUI:noBackground();
-        dragPreviewUI.suspend = true;
-        dragPreviewUI.prerender = function() end
-        dragPreviewUI.render = function(self)
-            if ISHotbar.hotbarDraggingItem then
-                local tex = ISHotbar.hotbarDraggingItem:getTexture();
-                if tex then
-                    local w, h = getFitSize(tex, HotbarReskin.CURRENT_HOTBAR_SIZE);
-                    local mx = getMouseX() - math.floor(w / 2);
-                    local my = getMouseY() - math.floor(h / 2);
-                    self:drawTextureScaled(tex, mx, my, w, h, 0.5, 1, 1, 1);
-                end
-            end
-        end
+        dragPreviewUI = HotbarDragPreview:new();
         dragPreviewUI:initialise();
         dragPreviewUI:addToUIManager();
         dragPreviewUI:setAlwaysOnTop(true);
@@ -257,6 +395,13 @@ local function removeDragPreviewUI()
         dragPreviewUI:removeFromUIManager();
         dragPreviewUI = nil;
     end
+end
+
+local function resetDragCandidate()
+    ISHotbar.dragCandidateSlot = nil;
+    ISHotbar.dragStartX = nil;
+    ISHotbar.dragStartY = nil;
+    ISHotbar.dragCandidatePlayer = nil;
 end
 
 function ISHotbar:prerender()
@@ -292,7 +437,7 @@ function ISHotbar:render()
     if SurvivalHUD.ShowHandSlots then
         drawHandSlot(self, 0, secondaryItem, secondaryItem ~= nil, hoveredHand == -2, false);
         drawSeparator(self, HotbarReskin.CURRENT_HOTBAR_SIZE);
-        slotX = HotbarReskin.CURRENT_HOTBAR_SIZE + SEP_SIZE;
+        slotX = HotbarReskin.CURRENT_HOTBAR_SIZE + getSepSize();
     end
 
     for i, slot in pairs(self.availableSlot) do
@@ -305,23 +450,26 @@ function ISHotbar:render()
         end
 
         if isSelected then
-            local val = getItemConditionPercent(slotItem);
-            if val then
-                val = math.max(0, math.min(100, val));
-                local conTex, newTexVal = getConditionTexture(val, self.slotTexVal[i], "Slot");
-                if newTexVal then self.slotTexVal[i] = newTexVal; end
-                if conTex then
-                    self:drawTexture(conTex, slotX, HOTBAR_MARGIN, 1, 1, 1, 1);
-                end
-            end
+            drawConditionOverlay(self, slotX, HOTBAR_MARGIN, slotItem, self.slotTexVal, i, "Slot", true);
             local selTex = getSlotTexture("Slot_Selected");
             if selTex then
                 self:drawTexture(selTex, slotX, HOTBAR_MARGIN, 1, 1, 1, 1);
             end
+        elseif slotItem and slotItem:canBeActivated() then
+            drawConditionOverlay(self, slotX, HOTBAR_MARGIN, slotItem, self.slotTexVal, i, "Slot", false);
+            if slotItem:isActivated() then
+                local selTex = getSlotTexture("Slot_Selected");
+                if selTex then
+                    self:drawTexture(selTex, slotX, HOTBAR_MARGIN, 1, 1, 1, 1);
+                end
+            end
         end
 
-        self:drawText(tostring(i), slotX + 8, HOTBAR_MARGIN + 5, 0, 0, 0, 0.75, self.font);
-        self:drawText(tostring(i), slotX + 7, HOTBAR_MARGIN + 4, self.textColor.r, self.textColor.g, self.textColor.b, self.textColor.a, self.font);
+        local indexInsetX = math.floor(8 * size / 64 + 0.5);
+        local indexInsetY = math.floor(5 * size / 64 + 0.5);
+        local indexFont = size >= 80 and UIFont.Medium or UIFont.Small;
+        self:drawText(tostring(i), slotX + indexInsetX + 1, HOTBAR_MARGIN + indexInsetY + 1, 0, 0, 0, 0.75, indexFont);
+        self:drawText(tostring(i), slotX + indexInsetX, HOTBAR_MARGIN + indexInsetY, self.textColor.r, self.textColor.g, self.textColor.b, self.textColor.a, indexFont);
 
         local item = self.attachedItems[i];
 
@@ -332,38 +480,35 @@ function ISHotbar:render()
                     r, g, b = 1, 0, 0;
                 end
             end
-            self:drawRect(slotX + 3, HOTBAR_MARGIN + 3, size - 6, size - 6, 0.25, r, g, b);
+            local highlightInset = math.floor(3 * size / 64 + 0.5);
+            self:drawRect(slotX + highlightInset, HOTBAR_MARGIN + highlightInset, size - highlightInset * 2, size - highlightInset * 2, 0.25, r, g, b);
 
-            local fontHgt = getTextManager():getFontHeight(UIFont.Small);
-            local slotName = getTextOrNull("IGUI_HotbarAttachment_" .. slot.slotType) or slot.name;
-            local textWid = getTextManager():MeasureStringX(UIFont.Small, slotName);
-            local labelX = slotX + math.floor((size - textWid) / 2);
-            self:drawRect(labelX - 2, -fontHgt, textWid + 4, fontHgt, 0.6, 0, 0, 0);
-            self:drawText(slotName, labelX, -fontHgt, self.textColor.r, self.textColor.g, self.textColor.b, self.textColor.a, self.font);
+            drawSlotLabel(self, slotX, size, getTextOrNull("IGUI_HotbarAttachment_" .. slot.slotType) or slot.name);
         end
 
         if item then
             local tex = item:getTexture();
-            local w, h = getFitSize(tex, size - 8);
+            local w, h = getItemDrawSize(tex, size / 64);
             local ix = slotX + math.floor((size - w) / 2);
             local iy = HOTBAR_MARGIN + math.floor((size - h) / 2);
             self:drawTextureScaled(tex, ix + 1, iy + 1, w, h, 0.25, 0, 0, 0);
             self:drawTextureScaled(tex, ix, iy, w, h, 1, 1, 1, 1);
         elseif slot.texture then
             local st = slot.texture;
-            local ix = slotX + math.floor((size - st:getWidth()) / 2);
-            local iy = HOTBAR_MARGIN + math.floor((size - st:getHeight()) / 2);
-            self:drawTexture(st, ix, iy, 0.25, 1, 1, 1);
+            local w, h = getItemDrawSize(st, size / 64);
+            local ix = slotX + math.floor((size - w) / 2);
+            local iy = HOTBAR_MARGIN + math.floor((size - h) / 2);
+            self:drawTextureScaled(st, ix, iy, w, h, 0.25, 1, 1, 1);
         end
 
-        slotX = slotX + size + HOTBAR_PAD;
+        slotX = slotX + size + getHotbarPad();
     end
 
     if SurvivalHUD.ShowHandSlots then
-        local rightSepX = slotX - HOTBAR_PAD;
+        local rightSepX = slotX - getHotbarPad();
         drawSeparator(self, rightSepX);
 
-        local rightHandX = rightSepX + SEP_SIZE;
+        local rightHandX = rightSepX + getSepSize();
         drawHandSlot(self, rightHandX, primaryItem, primaryItem ~= nil, hoveredHand == -3, true);
     end
 end
@@ -378,7 +523,7 @@ function ISHotbar:new(character)
 
     o.slotWidth = HotbarReskin.CURRENT_HOTBAR_SIZE;
     o.slotHeight = HotbarReskin.CURRENT_HOTBAR_SIZE;
-    o.slotPad = HOTBAR_PAD;
+    o.slotPad = getHotbarPad();
     o.margins = HOTBAR_MARGIN;
 
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 };
@@ -396,7 +541,7 @@ end
 Functions.PostHook.Add(ISHotbar, "refresh", function(self)
     self.slotWidth = HotbarReskin.CURRENT_HOTBAR_SIZE;
     self.slotHeight = HotbarReskin.CURRENT_HOTBAR_SIZE;
-    self.slotPad = HOTBAR_PAD;
+    self.slotPad = getHotbarPad();
     self.margins = HOTBAR_MARGIN;
 
     local count = math.max(#self.availableSlot, 1);
@@ -408,12 +553,12 @@ function ISHotbar:getSlotIndexAt(x, y)
     if y < 0 or y >= self.height then return -1 end
     local mainStartX = 0;
     if SurvivalHUD.ShowHandSlots then
-        mainStartX = HotbarReskin.CURRENT_HOTBAR_SIZE + SEP_SIZE;
+        mainStartX = HotbarReskin.CURRENT_HOTBAR_SIZE + getSepSize();
     end
     local slotCount = #self.availableSlot;
     local mainEndX = mainStartX + getMainWidth(slotCount);
     if x >= mainStartX and x < mainEndX then
-        local index = math.floor((x - mainStartX) / (HotbarReskin.CURRENT_HOTBAR_SIZE + HOTBAR_PAD)) + 1;
+        local index = math.floor((x - mainStartX) / (HotbarReskin.CURRENT_HOTBAR_SIZE + getHotbarPad())) + 1;
         index = math.max(index, 1);
         return math.min(index, slotCount);
     end
@@ -424,11 +569,11 @@ function ISHotbar:getHandSlotIndexAt(x, y)
     if y < 0 or y >= self.height then return -1 end
     if not SurvivalHUD.ShowHandSlots then return -1 end
     local slotCount = #self.availableSlot;
-    local mainEndX = HotbarReskin.CURRENT_HOTBAR_SIZE + SEP_SIZE + getMainWidth(slotCount);
+    local mainEndX = HotbarReskin.CURRENT_HOTBAR_SIZE + getSepSize() + getMainWidth(slotCount);
     if x >= 0 and x < HotbarReskin.CURRENT_HOTBAR_SIZE then
         return -2;
     end
-    local rightHandX = mainEndX + SEP_SIZE;
+    local rightHandX = mainEndX + getSepSize();
     if x >= rightHandX and x < rightHandX + HotbarReskin.CURRENT_HOTBAR_SIZE then
         return -3;
     end
@@ -470,10 +615,7 @@ function ISHotbar:update()
                 ISHotbar.hotbarDraggingFrom = self.playerNum;
                 ensureDragPreviewUI();
             end
-            ISHotbar.dragCandidateSlot = nil;
-            ISHotbar.dragStartX = nil;
-            ISHotbar.dragStartY = nil;
-            ISHotbar.dragCandidatePlayer = nil;
+            resetDragCandidate();
         end
     end
 
@@ -615,10 +757,7 @@ end
 
 function ISHotbar:onMouseUp(x, y)
     if ISHotbar.dragCandidateSlot and ISHotbar.dragCandidatePlayer == self.playerNum then
-        ISHotbar.dragCandidateSlot = nil;
-        ISHotbar.dragStartX = nil;
-        ISHotbar.dragStartY = nil;
-        ISHotbar.dragCandidatePlayer = nil;
+        resetDragCandidate();
     end
 
     if ISHotbar.hotbarDraggingItem and ISHotbar.hotbarDraggingFrom == self.playerNum then
@@ -775,10 +914,7 @@ end
 
 function ISHotbar:onMouseUpOutside(x, y)
     if ISHotbar.dragCandidateSlot and ISHotbar.dragCandidatePlayer == self.playerNum then
-        ISHotbar.dragCandidateSlot = nil;
-        ISHotbar.dragStartX = nil;
-        ISHotbar.dragStartY = nil;
-        ISHotbar.dragCandidatePlayer = nil;
+        resetDragCandidate();
     end
 
     if ISHotbar.hotbarDraggingItem and ISHotbar.hotbarDraggingFrom == self.playerNum then
@@ -824,26 +960,29 @@ end
 
 local function onGameBoot()
     for _, size in ipairs({ 48, 64, 80 }) do
-        getTexture("media/ui/Hotbar/" .. size .. "/Slot/Slot_Background.png");
-        getTexture("media/ui/Hotbar/" .. size .. "/Slot/Slot_Selected.png");
-
-        for _, phaseData in ipairs(CONDITION_PHASES) do
-            local phaseLevel = phaseData[3];
-            local thresholds = phaseData[4];
-            for _, threshold in ipairs(thresholds) do
-                getTexture("media/ui/Hotbar/" .. size .. "/Slot/Slot_" .. phaseLevel .. "_" .. threshold .. ".png");
+        for _, kind in ipairs({ "Slot", "Hand" }) do
+            for _, textureName in ipairs({ kind .. "_Background", kind .. "_Selected" }) do
+                getTexture("media/ui/Hotbar/" .. size .. "/" .. kind .. "/" .. textureName .. ".png");
             end
-        end
+            if kind == "Hand" then
+                getTexture("media/ui/Hotbar/" .. size .. "/Hand/Hand_Hover.png");
+            end
 
-        getTexture("media/ui/Hotbar/" .. size .. "/Hand/Hand_Background.png");
-        getTexture("media/ui/Hotbar/" .. size .. "/Hand/Hand_Selected.png");
-        getTexture("media/ui/Hotbar/" .. size .. "/Hand/Hand_Hover.png");
+            for _, phaseData in ipairs(CONDITION_PHASES) do
+                local phaseLevel = phaseData[3];
+                for _, threshold in ipairs(phaseData[4]) do
+                    getTexture("media/ui/Hotbar/" .. size .. "/" .. kind .. "/" .. kind .. "_" .. phaseLevel .. "_" .. threshold .. ".png");
+                end
+            end
 
-        for _, phaseData in ipairs(CONDITION_PHASES) do
-            local phaseLevel = phaseData[3];
-            local thresholds = phaseData[4];
-            for _, threshold in ipairs(thresholds) do
-                getTexture("media/ui/Hotbar/" .. size .. "/Hand/Hand_" .. phaseLevel .. "_" .. threshold .. ".png");
+            for _, phaseData in ipairs(CONDITION_PHASES) do
+                local phaseLevel = phaseData[3];
+                for _, threshold in ipairs(phaseData[4]) do
+                    local path = "media/ui/Hotbar/" .. size .. "/" .. kind .. "/Fluids/" .. kind .. "_" .. phaseLevel .. "_" .. threshold .. ".png";
+                    if fileExists(path) then
+                        getTexture(path);
+                    end
+                end
             end
         end
     end
