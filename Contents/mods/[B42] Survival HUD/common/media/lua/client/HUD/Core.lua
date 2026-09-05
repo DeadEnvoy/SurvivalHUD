@@ -1345,7 +1345,7 @@ function EnduranceUI:new(x, y, width, height)
     return o;
 end
 
-SurvivalHUD.OnCreatePlayer = function()
+local function onCreatePlayer()
     if SurvivalHUD.instance then
         if SurvivalHUD.instance.tooltipUI then
             SurvivalHUD.instance.tooltipUI:removeFromUIManager();
@@ -1370,13 +1370,13 @@ SurvivalHUD.OnCreatePlayer = function()
     EnduranceUI.instance.layoutDirty = true;
 end
 
-SurvivalHUD.OnResolutionChange = function()
+local function onResolutionChange()
     SKIP_RENDER = 15;
     if SurvivalHUD.instance then SurvivalHUD.instance.layoutDirty = true; end
     if EnduranceUI.instance then EnduranceUI.instance.layoutDirty = true; end
 end
 
-SurvivalHUD.OnPlayerUpdate = function()
+local function onPlayerUpdate()
     if SurvivalHUD.instance then
         SurvivalHUD.instance.layoutDirty = true;
     end
@@ -1385,7 +1385,7 @@ SurvivalHUD.OnPlayerUpdate = function()
     end
 end
 
-SurvivalHUD.OnPlayerDeath = function()
+local function onPlayerDeath()
     if SurvivalHUD.instance then
         if SurvivalHUD.instance.tooltipUI then
             SurvivalHUD.instance.tooltipUI:removeFromUIManager();
@@ -1399,7 +1399,7 @@ SurvivalHUD.OnPlayerDeath = function()
     end
 end
 
-SurvivalHUD.OnGameBoot = function()
+local function onGameBoot()
     for _, size in ipairs({ 48, 64, 80 }) do
         local sizeStr = tostring(size);
 
@@ -1434,12 +1434,12 @@ SurvivalHUD.OnGameBoot = function()
     end
 end
 
-Events.OnCreatePlayer.Add(SurvivalHUD.OnCreatePlayer);
-Events.OnPlayerDeath.Add(SurvivalHUD.OnPlayerDeath);
-Events.OnResolutionChange.Add(SurvivalHUD.OnResolutionChange);
-Events.OnClothingUpdated.Add(SurvivalHUD.OnPlayerUpdate);
-Events.OnEnterVehicle.Add(SurvivalHUD.OnPlayerUpdate);
-Events.OnExitVehicle.Add(SurvivalHUD.OnPlayerUpdate);
-Events.OnSwitchVehicleSeat.Add(SurvivalHUD.OnPlayerUpdate);
+Events.OnCreatePlayer.Add(onCreatePlayer);
+Events.OnPlayerDeath.Add(onPlayerDeath);
+Events.OnResolutionChange.Add(onResolutionChange);
+Events.OnClothingUpdated.Add(onPlayerUpdate);
+Events.OnEnterVehicle.Add(onPlayerUpdate);
+Events.OnExitVehicle.Add(onPlayerUpdate);
+Events.OnSwitchVehicleSeat.Add(onPlayerUpdate);
 
-Events.OnGameBoot.Add(SurvivalHUD.OnGameBoot);
+Events.OnGameBoot.Add(onGameBoot);
