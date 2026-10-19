@@ -1,3 +1,9 @@
+# 1.3.1
+**UI**
+- The sidebar health icon has been restored.
+    - The skills icon is now nested and only appears on hover.
+    - Oscillation amplitude now scales with the icon size.
+
 # 1.3.0
 **UI**
 - Added an audibility indicator.
@@ -13,7 +19,7 @@
     - Primary and secondary hand slots are now permanently hidden.
     - Added a "TUTORIAL" button to open the Survival Guide.
         - This is required to balance button placement after the hand slots were removed.
-    - The health icon dynamically swapping to the perks icon has been replaced with a permanent one.
+    - The health icon dynamically swapping to the skills icon has been replaced with a permanent one.
         - If you need quick access to the health panel, you can still do so by clicking the corresponding icon (bottom right).
     - The "Client", "Admin" & "War" buttons have been merged into a single expandable button.
 - Player status tracking has been improved.
