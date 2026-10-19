@@ -71,7 +71,7 @@ function ISEquippedItem:shrinkWrap()
     local yMax = 0;
     local children = self:getChildren();
     for _, child in pairs(children) do
-        if child ~= self.adminBtn and child ~= self.warManagerBtn and child ~= self.arfBtn then
+        if child ~= self.adminBtn and child ~= self.warManagerBtn and child ~= self.arfBtn and child ~= self.skillsBtn then
             if child.Type == "ISButton" or child.Type == "ISImage" then
                 xMax = math.max(xMax, child:getRight());
                 yMax = math.max(yMax, child:getBottom());
@@ -102,7 +102,7 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
     self.btnWidth = width;
     self.btnHeight = width * 0.75;
     self.btnGap = math.floor(20 * width / 64 + 0.5);
-    self.healthIconOscillatorScalar = 0;
+    self.healthIconOscillatorScalar = 15.6 * (self.btnWidth / 48);
 
     self:removeChild(self.mainHand);
     self.mainHand:setX(-1000);
@@ -121,8 +121,8 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
         end
     end
 
-    self.perksIconOn = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Perks_On_" .. self.btnWidth .. ".png");
-    self.perksIconOff = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Perks_Off_" .. self.btnWidth .. ".png");
+    self.skillsIconOn = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Skills_On_" .. self.btnWidth .. ".png");
+    self.skillsIconOff = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Skills_Off_" .. self.btnWidth .. ".png");
 
     if self.invBtn then
         self.tutorialIconOn = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Tutorial_On_" .. self.btnWidth .. ".png");
@@ -163,7 +163,7 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
     local extraButtons = {};
     for _, child in pairs(self:getChildren()) do
         if child.Type == "ISButton" and not isVanilla[child] then
-            if child ~= self.adminBtn and child ~= self.warManagerBtn and child ~= self.arfBtn then
+            if child ~= self.adminBtn and child ~= self.warManagerBtn and child ~= self.arfBtn and child ~= self.skillsBtn then
                 table.insert(extraButtons, child);
             end
         end
@@ -184,6 +184,25 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
 
     if self.radialIcon then
         self.radialIcon:setY(self.safetyBtn:getY());
+    end
+
+    if self.healthBtn then
+        self.healthPopupShown = false;
+        self.healthBaseX = self.healthBtn:getX();
+        self.healthBaseY = self.healthBtn:getY();
+        self.healthBaseW = self.healthBtn:getWidth();
+
+        self.skillsBtn = ISButton:new(self.healthBaseX + self.healthBaseW + self.btnGap, self.healthBaseY, self.btnWidth, self.btnHeight, "", self, ISEquippedItem.onOptionMouseDown);
+        self.skillsBtn:setImage(self.skillsIconOff);
+        self.skillsBtn.internal = "SKILLS";
+        self.skillsBtn:initialise();
+        self.skillsBtn:instantiate();
+        self.skillsBtn:setDisplayBackground(false);
+        self.skillsBtn:ignoreWidthChange();
+        self.skillsBtn:ignoreHeightChange();
+        self.skillsBtn:setVisible(false);
+        self:addChild(self.skillsBtn);
+        self:addMouseOverToolTipItem(self.skillsBtn, getText("IGUI_XP_Skills"));
     end
 
     if self.debugBtn then
@@ -265,8 +284,6 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
         self.mapPopup:setX(self.mapBtn:getAbsoluteX());
         self.mapPopup:setY(self.mapBtn:getAbsoluteY());
     end
-
-    self:updateTooltipText(getText("IGUI_XP_Skills"));
 end)
 
 local original_ISEquippedItem_prerender = ISEquippedItem.prerender;
@@ -284,7 +301,7 @@ function ISEquippedItem:prerender()
     self.warManagerBtn = warManagerBtn;
 
     if self.healthBtn then
-        local healthTex = isTabActive(infoPanel, getText("IGUI_XP_Skills")) and self.perksIconOn or self.perksIconOff;
+        local healthTex = isTabActive(infoPanel, getText("IGUI_XP_Health")) and self.heartIconOn or self.heartIconOff;
         if self.healthBtn.image ~= healthTex then
             self.healthBtn:setImage(healthTex);
         end
@@ -461,26 +478,48 @@ function ISEquippedItem:prerender()
         end
     end
 
-    local targetWidth = math.max(self.btnWidth, clientRightmost, debugRightmost);
+    local healthRightmost = self.btnWidth;
+    if self.skillsBtn then
+        self.skillsBtn:setY(self.healthBtn:getY());
+        self.skillsBtn:setX(self.healthBaseX + self.healthBaseW + self.btnGap);
+
+        local zoneX = self:getAbsoluteX() + self.healthBaseX - self.btnGap / 2;
+        local zoneY = self.healthBtn:getAbsoluteY() - self.btnGap / 2;
+        local zoneW = self.healthBaseW + self.btnGap + self.skillsBtn:getWidth() + self.btnGap;
+        local zoneH = self.healthBtn:getHeight() + self.btnGap;
+
+        local mx, my = getMouseX(), getMouseY();
+        local isOverZone = mx >= zoneX and mx <= zoneX + zoneW and my >= zoneY and my <= zoneY + zoneH;
+
+        local isOscillating = self.healthIconOscillatorLevel > 0.05;
+        local isSkillsActive = isTabActive(infoPanel, getText("IGUI_XP_Skills"));
+
+        local showPopup = not isOscillating and (isSkillsActive or (self.healthPopupShown and isOverZone) or self.healthBtn:isMouseOver());
+        self.healthPopupShown = showPopup;
+
+        if self.skillsBtn:getIsVisible() ~= showPopup then
+            self.skillsBtn:setVisible(showPopup);
+        end
+
+        local skillsTex = isSkillsActive and self.skillsIconOn or self.skillsIconOff;
+        if self.skillsBtn.image ~= skillsTex then
+            self.skillsBtn:setImage(skillsTex);
+        end
+
+        if showPopup then
+            healthRightmost = math.max(healthRightmost, self.skillsBtn:getX() + self.skillsBtn:getWidth());
+        end
+    end
+
+    local targetWidth = math.max(self.btnWidth, clientRightmost, debugRightmost, healthRightmost);
     if self:getWidth() ~= targetWidth then
         self:setWidth(targetWidth);
     end
 end
 
-function ISEquippedItem:updateTooltipText(newText)
-    if self.mouseOverList then
-        for _, v in ipairs(self.mouseOverList) do
-            if v.object == self.healthBtn then
-                v.displayString = newText;
-                break;
-            end
-        end
-    end
-end
-
 local original_ISEquippedItem_onOptionMouseDown = ISEquippedItem.onOptionMouseDown;
 function ISEquippedItem:onOptionMouseDown(button, x, y)
-    if button.internal == "HEALTH" then
+    if button.internal == "SKILLS" then
         if self.infopanel then
             self.infopanel:toggleView(getText("IGUI_XP_Skills"));
             if self.infopanel:isVisible() and JoypadState.players[self.playerNum + 1] then
