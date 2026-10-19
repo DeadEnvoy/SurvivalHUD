@@ -35,7 +35,7 @@ MainOptions.addUIPanel = function(self)
 
             local needsSizeCombo = _original_addCombo(self, x, y, w, h, getText("UI_optionscreen_NeedsSize"), { "48", "64", "80" }, 2);
             registerSizeOption(self, needsSizeCombo, "SurvivalHUD.NeedsSize", "iconSize", "UI_optionscreen_NeedsSize_tt");
-        elseif name == getText("UI_optionscreen_SidebarSize") and not sidebarSizeFound and HotbarReskin then
+        elseif name == getText("UI_optionscreen_SidebarSize") and not sidebarSizeFound then
             sidebarSizeFound = true;
 
             local hotbarSizeCombo = _original_addCombo(self, x, y, w, h, getText("UI_optionscreen_HotbarSize"), { "48", "64", "80" }, 2);

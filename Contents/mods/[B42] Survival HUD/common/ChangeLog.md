@@ -1,3 +1,49 @@
+# 1.3.0
+**UI**
+- Added an audibility indicator.
+    - There are four detection levels in total:
+        1. From 1 to 4 tiles.
+        2. From 5 to 8 tiles.
+        3. From 9 to 12 tiles.
+        4. From 13 tiles and up.
+    - The indicator is affected by every sound-producing player action capable of attracting zombies.
+        - Any mods that add sounds originating from the player or the tile they occupy are supported.
+    - When driving a vehicle, its sounds (horn, engine volume, etc.) also affect the indicator.
+- The sidebar has been redesigned.
+    - Primary and secondary hand slots are now permanently hidden.
+    - Added a "TUTORIAL" button to open the Survival Guide.
+        - This is required to balance button placement after the hand slots were removed.
+    - The health icon dynamically swapping to the perks icon has been replaced with a permanent one.
+        - If you need quick access to the health panel, you can still do so by clicking the corresponding icon (bottom right).
+    - The "Client", "Admin" & "War" buttons have been merged into a single expandable button.
+- Player status tracking has been improved.
+    - Need icons now blink when they reach the critical phase.
+    - The health icon (its fill) now pulses when there is any open wound or dirty bandage.
+- The hotbar has been extended and polished.
+    - Added support for displaying all fluid types.
+    - A powered device (flashlight, radio, etc.) held in hand now always shows its charge.
+    - A jammed weapon now pulses its condition texture, while a broken one pulses its icon.
+    - Equipped weapons now display the amount of ammo loaded in them.
+- The Survival Guide window has been reworked.
+    - Since a dedicated button now provides permanent access to it, the option to force it open at game start has been removed, along with the related logic.
+
+**MP**
+- Fatigue icon is now hidden when "Sleep Needed" is disabled ([#2](https://github.com/DeadEnvoy/SurvivalHUD/issues/2)).
+    - The Intoxication icon will be shown in this case to keep the visual layout balanced.
+
+**FIXES**
+- Fixed the health panel not opening when clicking on its icon.
+- Fixed the hotbar slot tooltip not appearing while an action is being performed.
+- Fixed incorrect display of sprite-based items (without an icon) in the hotbar.
+- Fixed error spam when [Moodle Framework](https://steamcommunity.com/sharedfiles/filedetails/?id=3396446795) is installed ([#3](https://github.com/DeadEnvoy/SurvivalHUD/issues/3)).
+
+
+**TECHNICAL**
+- The compatibility patch for [Mini Health Panel](https://steamcommunity.com/sharedfiles/filedetails/?id=2866258937) has been removed.
+    - As a result, the incompatibility with [Mini Health Plus](https://steamcommunity.com/sharedfiles/filedetails/?id=3710913197) has been lifted.
+- Added incompatibility with [Clean Hotbar](https://steamcommunity.com/sharedfiles/filedetails/?id=3461263912), [Mattnetic's Heart Health Meter](https://steamcommunity.com/sharedfiles/filedetails/?id=3805849470) and [Tien's Customizable Left Sidebar](https://steamcommunity.com/sharedfiles/filedetails/?id=3811213375).
+- 42.18 - 42.19 support has been discontinued.
+
 # 1.2.3
 **TECHNICAL**
 - The changelog format was updated to Markdown.

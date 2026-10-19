@@ -3,9 +3,9 @@ local Utils = {};
 Utils.CollisionSizes = { 80, 64, 48 };
 
 Utils.SeparatorConfig = {
-    [48] = { texSize = 32, renderSize = 24 },
-    [64] = { texSize = 32, renderSize = 32 },
-    [80] = { texSize = 48, renderSize = 40 },
+    [80] = 40,
+    [64] = 32,
+    [48] = 24,
 };
 
 function Utils.getNextSmallerSize(sizes, currentSize)
@@ -21,4 +21,4 @@ function Utils.clamp100(x)
 	return math.max(0, math.min(100, x));
 end
 
-return Utils
+return Utils;

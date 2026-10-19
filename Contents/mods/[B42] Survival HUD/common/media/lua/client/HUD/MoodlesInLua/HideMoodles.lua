@@ -1,7 +1,5 @@
 require "MoodlesIn";
 
-local hasMF = pcall(require, "MF_ISMoodle");
-
 local HIDDEN_MOODLES = {
     [MoodleType.HUNGRY] = true,
     [MoodleType.ENDURANCE] = true,
@@ -138,31 +136,34 @@ if ISMoodlesInLua and ISMoodlesInLua.render then
             end
         end
     end
-    if hasMF and (MF and MF.ISMoodle) then
-        local originalGetXYPosition = MF.ISMoodle.getXYPosition;
+    if getActivatedMods():contains("MoodleFramework") then
+        require("MF_ISMoodle");
+        if MF and MF.ISMoodle then
+            local originalGetXYPosition = MF.ISMoodle.getXYPosition;
 
-        function MF.ISMoodle:getXYPosition()
-            local x, y = originalGetXYPosition(self);
-            if self.disable or self:getLevel() == 0 then
-                return x, y;
-            end
+            function MF.ISMoodle:getXYPosition()
+                local x, y = originalGetXYPosition(self);
+                if self.disable or self:getLevel() == 0 then
+                    return x, y;
+                end
 
-            local distY = 10 + MF.defaultWidth * MF.scale;
-            local hiddenVisible = 0;
+                local distY = 10 + MF.defaultWidth * MF.scale;
+                local hiddenVisible = 0;
 
-            local moodles = self.char:getMoodles();
-            local moodlesValuesForType = Registries.MOODLE_TYPE:values();
-            for i = 0, moodlesValuesForType:size() - 1 do
-                local moodleType = moodlesValuesForType:get(i);
-                local moodleLevel = moodles:getMoodleLevel(moodleType);
-                if HIDDEN_MOODLES[moodleType] and moodleLevel ~= 0 then
-                    if moodleType ~= MoodleType.FOOD_EATEN or moodleLevel >= 3 then
-                        hiddenVisible = hiddenVisible + 1;
+                local moodles = self.char:getMoodles();
+                local moodlesValuesForType = Registries.MOODLE_TYPE:values();
+                for i = 0, moodlesValuesForType:size() - 1 do
+                    local moodleType = moodlesValuesForType:get(i);
+                    local moodleLevel = moodles:getMoodleLevel(moodleType);
+                    if HIDDEN_MOODLES[moodleType] and moodleLevel ~= 0 then
+                        if moodleType ~= MoodleType.FOOD_EATEN or moodleLevel >= 3 then
+                            hiddenVisible = hiddenVisible + 1;
+                        end
                     end
                 end
-            end
 
-            return x, y - hiddenVisible * distY;
+                return x, y - hiddenVisible * distY;
+            end
         end
     end
 end

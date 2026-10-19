@@ -2,30 +2,87 @@ require "ISUI/ISPanel";
 
 local Utils = require("HUD/Utils");
 
-SurvivalHUD = ISPanel:derive("SurvivalHUD");
+NeedsUI = ISPanel:derive("NeedsUI");
 EnduranceUI = ISPanel:derive("EnduranceUI");
 
-SurvivalHUD.instance = nil;
+NeedsUI.instance = nil;
 EnduranceUI.instance = nil;
 
-SurvivalHUD.ICON_SIZE = 64;
-
-local CURRENT_ICON_SIZE = 64;
-
-local BOTTOM_OFFSET = 15;
-local RIGHT_OFFSET = 15;
+local BASE_ICON_SIZE = 64;
+local BOTTOM_OFFSET_BASE, RIGHT_OFFSET_BASE = 15, 15;
 
 local CHEVRON_CONFIG = {
-    [48] = { texSize = 16, renderSize = 12 },
-    [64] = { texSize = 16, renderSize = 16 },
-    [80] = { texSize = 24, renderSize = 20 },
+    [48] = { size = 12, offsets = { [1] = 3, [2] = 1.5 } },
+    [64] = { size = 16, offsets = { [1] = 5, [2] = 2.5 } },
+    [80] = { size = 20, offsets = { [1] = 6, [2] = 3 } },
 };
 
-local SKIP_RENDER = 0;
+local COMPACT_ICON_SIZE_MAP = {
+    [80] = 64,
+    [64] = 48,
+    [48] = 32,
+};
 
-local ARROW_DURATION = 10000;
+local function radToStage(radius)
+    if not radius or radius <= 0 then
+        return 0;
+    elseif radius <= 4 then
+        return 1;
+    elseif radius <= 8 then
+        return 2;
+    elseif radius <= 12 then
+        return 3;
+    else
+        return 4;
+    end
+end
 
-local ARROW_OFFSET = 5.25;
+local SAMPLE_INTERVAL_MS = 400;
+
+local ARROW_THRESHOLDS = {
+    Health = {
+        tier1_enter = 0.005,
+        tier1_exit = 0.002,
+        tier2_enter = 0.150,
+        tier2_exit = 0.100,
+    },
+    Hunger = {
+        tier1_enter = 0.003,
+        tier1_exit = 0.0015,
+        tier2_enter = 0.030,
+        tier2_exit = 0.024,
+    },
+    Thirst = {
+        tier1_enter = 0.003,
+        tier1_exit = 0.0015,
+        tier2_enter = 0.035,
+        tier2_exit = 0.027,
+    },
+    Fatigue = {
+        tier1_enter = 0.003,
+        tier1_exit = 0.0015,
+        tier2_enter = 0.030,
+        tier2_exit = 0.024,
+    },
+    Temperature = {
+        tier1_enter = 0.003,
+        tier1_exit = 0.0015,
+        tier2_enter = 0.025,
+        tier2_exit = 0.018,
+    },
+    Sickness = {
+        tier1_enter = 0.005,
+        tier1_exit = 0.002,
+        tier2_enter = 0.050,
+        tier2_exit = 0.035,
+    },
+    Intoxication = {
+        tier1_enter = 0.005,
+        tier1_exit = 0.002,
+        tier2_enter = 0.050,
+        tier2_exit = 0.035,
+    },
+};
 
 local TOOLTIP_ALPHA_THRESHOLD = 0.9;
 
@@ -37,8 +94,6 @@ local FOOD_EATEN_THRESHOLDS = {
     { timer = 1600, level = 2 },
     { timer = 0, level = 1 },
 };
-
-local COLLISION_SIZES = { 80, 64, 48 };
 
 local PHASE_COLORS = {
     [0] = { r = 1, g = 1, b = 1 },
@@ -147,64 +202,66 @@ local function getGroupGap(size)
     return math.floor(GROUP_GAP_BASE * size / 64 + 0.5);
 end
 
+local function getBottomOffset(size)
+    return math.floor(BOTTOM_OFFSET_BASE * size / 64 + 0.5);
+end
+
+local function getSideOffset(size)
+    return math.floor(RIGHT_OFFSET_BASE * size / 64 + 0.5);
+end
+
 local ICON_VISUAL_PADDING = {
-    Fatigue = { left = 0.23, right = 0.23 },
-    Thirst = { left = 0.30, right = 0.30 },
-    Hunger = { left = 0.08, right = 0.08 },
+    Fatigue = { left = 0.24, right = 0.24 },
+    Thirst = { left = 0.32, right = 0.32 },
+    Hunger = { left = 0.09, right = 0.10 },
     Temperature  = { left = 0.30, right = 0.30 },
-    Intoxication = { left = 0.025, right = 0.025 },
-    Sickness = { left = 0.05, right = 0.05 },
-    Health = { left = 0.05, right = 0.05 },
+    Intoxication = { left = 0.04, right = 0.04 },
+    Sickness = { left = 0.07, right = 0.07 },
+    Health = { left = 0.07, right = 0.07 },
+    Radius = { left = 0.19, right = 0.19 },
+    Endurance = { left = 0.09, right = 0.07 },
 };
+
+local function getVisualPadPx(statType, size)
+    local pad = ICON_VISUAL_PADDING[statType];
+    return pad and math.floor(size * pad.left) or 0, pad and math.floor(size * pad.right) or 0;
+end
 
 local DEBUG_PADDING = false;
 
 local function getPanelsVisible(playerNum)
     local hotbar = getPlayerHotbar(playerNum);
     local dash = getPlayerVehicleDashboard(playerNum);
-    local pscDash = getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(playerNum) or nil;
+    local pscDash = getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(playerNum);
     return hotbar and hotbar:isReallyVisible(), dash and dash:isReallyVisible(), pscDash and pscDash:isReallyVisible();
 end
 
-local function getRangedWeapon(player)
-    local weapon = player:getPrimaryHandItem();
-    if not weapon or not instanceof(weapon, "HandWeapon") or not weapon:isRanged() then
-        return nil;
-    end
-    return weapon;
-end
+local function hasOpenWoundOrDirtyBandage(player)
+    if not player then return false; end
+    local bodyParts = player:getBodyDamage():getBodyParts();
 
-local function truncateNameToWidth(name, font, maxWidth)
-    if getTextManager():MeasureStringX(font, name) <= maxWidth then
-        return name;
-    end
-    if getTextManager():MeasureStringX(font, "...") > maxWidth then
-        return nil;
-    end
-    for cut = #name - 1, 1, -1 do
-        local byte = string.byte(name, cut);
-        if byte < 0x80 or byte >= 0xC0 then
-            local prefix = string.sub(name, 1, cut) .. "...";
-            if getTextManager():MeasureStringX(font, prefix) <= maxWidth then
-                return prefix;
+    for i = 1, bodyParts:size() do
+        local part = bodyParts:get(i - 1);
+        if part:bandaged() then
+            if part:isBandageDirty() then
+                return true;
+            end
+        else
+            if part:bleeding()
+                or part:scratched()
+                or part:isCut()
+                or part:deepWounded()
+                or part:bitten()
+                or part:haveBullet()
+                or part:haveGlass()
+                or part:getBurnTime() > 0
+                or part:stitched()
+                or part:isInfectedWound() then
+                return true;
             end
         end
     end
-    return nil;
-end
-
-local function getAmmoDisplayText(weapon)
-    if weapon:isJammed() then
-        return "X";
-    end
-    if weapon:getMagazineType() and weapon:isContainsClip() then
-        local chamberFlag = weapon:isRoundChambered() and "1" or "0";
-        return chamberFlag .. " (" .. weapon:getCurrentAmmoCount() .. ")";
-    end
-    if weapon:haveChamber() then
-        return tostring(weapon:getCurrentAmmoCount() + (weapon:isRoundChambered() and 1 or 0));
-    end
-    return tostring(weapon:getCurrentAmmoCount());
+    return false;
 end
 
 local MOODLE_NAMES = {
@@ -216,7 +273,7 @@ local MOODLE_NAMES = {
     Health = "Injured",
 };
 
-local Tooltip = ISPanel:derive("SurvivalHUD_Tooltip");
+local Tooltip = ISPanel:derive("NeedsUI_Tooltip");
 
 function Tooltip:initialise()
     ISPanel.initialise(self);
@@ -310,8 +367,9 @@ function Tooltip:getLineColor()
 end
 
 function Tooltip:getEnduranceLineColor()
-    local val = self.currentValues["Endurance"];
-    local phase = EnduranceUI.instance:getPhase(val);
+    local val = self.currentValues and self.currentValues["Endurance"];
+    if not val then return 1, 1, 1; end
+    local phase = EnduranceUI.instance and EnduranceUI.instance:getPhase(val) or 0;
     local color = PHASE_COLORS[phase];
     if color then
         return color.r, color.g, color.b;
@@ -320,7 +378,8 @@ function Tooltip:getEnduranceLineColor()
 end
 
 function Tooltip:getStatLineColor()
-    local phase = SurvivalHUD.instance:getPhaseData(
+    if not self.currentValues or not NeedsUI.instance then return 1, 1, 1; end
+    local phase = NeedsUI.instance:getPhaseData(
         self.currentValues[self.iconType], self.iconType);
     if not phase then
         return 1, 1, 1;
@@ -394,7 +453,7 @@ function Tooltip:prerender()
             if arrowTex then
                 local textWidth = getTextManager():MeasureStringX(font, line);
                 local arrowX = pad + textWidth + 5;
-                local arrowY = curY + (lineHeight - arrowTex:getHeight()) / 2;
+                local arrowY = math.floor(curY + (lineHeight - arrowTex:getHeight()) / 2);
                 self:drawTextureScaled(arrowTex, arrowX, arrowY, arrowTex:getWidth(), arrowTex:getHeight(), 1, 1, 1, 1);
             end
         end
@@ -411,9 +470,9 @@ function Tooltip:new(x, y, width, height)
     return o
 end
 
-function SurvivalHUD:initialise()
+function NeedsUI:initialise()
     ISPanel.initialise(self);
-    CURRENT_ICON_SIZE = SurvivalHUD.ICON_SIZE;
+    self.iconSize = BASE_ICON_SIZE;
     self.layoutDirty = true;
 
     self.tooltipUI = Tooltip:new(0, 0, 0, 0);
@@ -422,12 +481,30 @@ function SurvivalHUD:initialise()
     self.tooltipUI:setVisible(false);
 end
 
-function SurvivalHUD:getPhaseData(val, statType)
+function NeedsUI:setBaseIconSize(size)
+    BASE_ICON_SIZE = size;
+    if NeedsUI.instance then
+        NeedsUI.instance.layoutDirty = true;
+    end
+    if EnduranceUI.instance then
+        EnduranceUI.instance.layoutDirty = true;
+    end
+end
+
+function NeedsUI:getBaseIconSize()
+    return BASE_ICON_SIZE;
+end
+
+function NeedsUI:getPhaseData(val, statType)
+    if not val or val ~= val then return nil; end
     local phases = PHASES[statType];
     if not phases then return nil; end
 
-    if val ~= val then
-        return nil;
+    if val >= phases[1][2] then
+        return phases[1];
+    end
+    if val <= phases[#phases][1] then
+        return phases[#phases];
     end
 
     for _, phase in ipairs(phases) do
@@ -436,10 +513,13 @@ function SurvivalHUD:getPhaseData(val, statType)
         end
     end
 
+    if statType == "Temperature" then
+        return (val >= 37) and phases[1] or phases[#phases];
+    end
     return phases[#phases];
 end
 
-function SurvivalHUD:getFoodEatenPhase(timer)
+local function getFoodEatenPhase(timer)
     if timer <= 0 then return nil; end
     for _, t in ipairs(FOOD_EATEN_THRESHOLDS) do
         if timer > t.timer then return t.level, t.timer; end
@@ -447,7 +527,7 @@ function SurvivalHUD:getFoodEatenPhase(timer)
     return nil;
 end
 
-function SurvivalHUD:isStatVisible(statType, val)
+function NeedsUI:isStatVisible(statType, val)
     if statType == "Fatigue" then
         return self.sleepNeeded;
     end
@@ -460,7 +540,7 @@ function SurvivalHUD:isStatVisible(statType, val)
     return true;
 end
 
-function SurvivalHUD:getBestTexture(val, statType, currentTexVal)
+function NeedsUI:getBestTexture(val, statType, currentTexVal)
     local intoxicationAlwaysShown = statType == "Intoxication" and not self.sleepNeeded;
     if statType ~= "Temperature" and val <= 0 and not intoxicationAlwaysShown then return nil; end
 
@@ -482,7 +562,8 @@ function SurvivalHUD:getBestTexture(val, statType, currentTexVal)
 
     local texValues = phase[4];
     if #texValues == 0 then
-        return (statType == "Temperature") and 37 or nil;
+        if statType == "Temperature" then return 37; end
+        return nil;
     end
 
     local bestVal = texValues[1];
@@ -538,62 +619,67 @@ local function buildTexturePaths(sizeStr, statType, phase, texVal)
     return bgPath, iconPath;
 end
 
-function SurvivalHUD:getTexturePaths(statType, phase, texVal)
-    return buildTexturePaths(tostring(CURRENT_ICON_SIZE), statType, phase, texVal);
-end
-
-function SurvivalHUD:getIconPadPx(statType)
-    local size = CURRENT_ICON_SIZE;
-    local pad = ICON_VISUAL_PADDING[statType];
-    return pad and math.floor(size * pad.left) or 0, pad and math.floor(size * pad.right) or 0;
-end
-
-function SurvivalHUD:isIntersecting(x1, y1, w1, h1, x2, y2, w2, h2)
+local function isIntersecting(x1, y1, w1, h1, x2, y2, w2, h2)
     return not (x1 + w1 < x2 or x2 + w2 < x1 or y1 + h1 < y2 or y2 + h2 < y1);
 end
 
-function SurvivalHUD:checkUICollision(ui)
+local function checkUICollision(hud, ui)
     if not ui then return false; end
     if not ui:isReallyVisible() then return false; end
     if ui:getWidth() <= 0 or ui:getHeight() <= 0 then return false; end
 
     local screenW = getCore():getScreenWidth();
     local screenH = getCore():getScreenHeight();
-    local myX = screenW - self:getWidth() - RIGHT_OFFSET;
-    local myY = screenH - BOTTOM_OFFSET - CURRENT_ICON_SIZE;
-    local myW = self:getWidth();
-    local myH = CURRENT_ICON_SIZE;
+    local uiX = ui:getAbsoluteX();
+    local uiY = ui:getAbsoluteY();
+    local uiW = ui:getWidth();
+    local uiH = ui:getHeight();
 
-    return self:isIntersecting(myX, myY, myW, myH, ui:getAbsoluteX(), ui:getAbsoluteY(), ui:getWidth(), ui:getHeight());
+    local myX = screenW - hud:getWidth() - getSideOffset(hud.iconSize);
+    local myY = screenH - getBottomOffset(hud.iconSize) - hud.iconSize;
+    local myW = hud:getWidth();
+    local myH = hud.iconSize;
+
+    if isIntersecting(myX, myY, myW, myH, uiX, uiY, uiW, uiH) then
+        return true;
+    end
+
+    local endurance = EnduranceUI.instance;
+    if endurance and endurance:isReallyVisible() then
+        if isIntersecting(endurance:getAbsoluteX(), endurance:getAbsoluteY(), endurance:getWidth(), endurance:getHeight(), uiX, uiY, uiW, uiH) then
+            return true;
+        end
+    end
+
+    return false;
 end
 
-function SurvivalHUD:resolveCollisionWith(ui, isIntoxicationVisible, isSicknessVisible)
+local function resolveCollisionWith(hud, ui, isIntoxicationVisible, isSicknessVisible)
     local screenW = getCore():getScreenWidth();
     local screenH = getCore():getScreenHeight();
-    while self:checkUICollision(ui) do
-        local nextIconSize = Utils.getNextSmallerSize(COLLISION_SIZES, CURRENT_ICON_SIZE);
+    while checkUICollision(hud, ui) do
+        local nextIconSize = Utils.getNextSmallerSize(Utils.CollisionSizes, hud.iconSize);
         if nextIconSize then
-            CURRENT_ICON_SIZE = nextIconSize;
+            hud.iconSize = nextIconSize;
             if EnduranceUI.instance then
-                EnduranceUI.instance.layoutDirty = true;
+                EnduranceUI.instance:updateLayout();
             end
-            self:recalcDimensions(isIntoxicationVisible, isSicknessVisible);
-            self:setX(screenW - self:getWidth() - RIGHT_OFFSET);
-            self:setY(screenH - BOTTOM_OFFSET - CURRENT_ICON_SIZE);
-        elseif HotbarReskin and ui.availableSlot then
-            local nextHotbarSize = Utils.getNextSmallerSize(Utils.CollisionSizes, HotbarReskin.CURRENT_HOTBAR_SIZE);
+            hud:recalcDimensions(isIntoxicationVisible, isSicknessVisible);
+            hud:setX(screenW - hud:getWidth() - getSideOffset(hud.iconSize));
+            hud:setY(screenH - getBottomOffset(hud.iconSize) - hud.iconSize);
+        elseif ui.availableSlot and ui.setSlotSize then
+            local nextHotbarSize = Utils.getNextSmallerSize(Utils.CollisionSizes, ui.slotSize);
             if not nextHotbarSize then break; end
-            HotbarReskin.CURRENT_HOTBAR_SIZE = nextHotbarSize;
-            ui:layoutHotbar();
+            ui:setSlotSize(nextHotbarSize);
         else
             break;
         end
     end
 end
 
-function SurvivalHUD:updateLayout(isIntoxicationVisible, isSicknessVisible)
+function NeedsUI:updateLayout(isIntoxicationVisible, isSicknessVisible)
     local player = getPlayer();
-    if not player then return; end
+    if not player or player:isDead() then return; end
 
     if isIntoxicationVisible == nil then
         isIntoxicationVisible = self:isStatVisible("Intoxication", player:getStats():get(CharacterStat.FOOD_SICKNESS));
@@ -604,43 +690,40 @@ function SurvivalHUD:updateLayout(isIntoxicationVisible, isSicknessVisible)
 
     local hotbar = getPlayerHotbar(player:getPlayerNum());
     local dash = getPlayerVehicleDashboard(player:getPlayerNum());
-    local pscDash = getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(player:getPlayerNum()) or nil;
+    local pscDash = getPlayerVehicleDashboardReplacer and getPlayerVehicleDashboardReplacer(player:getPlayerNum());
     local vehicle = player:getVehicle();
 
-    CURRENT_ICON_SIZE = SurvivalHUD.ICON_SIZE;
-    if HotbarReskin and hotbar then
-        HotbarReskin.CURRENT_HOTBAR_SIZE = HotbarReskin.HOTBAR_SIZE;
-        hotbar:layoutHotbar();
+    self.iconSize = BASE_ICON_SIZE;
+    if hotbar then
+        hotbar:setSlotSize(ISHotbar:getBaseSlotSize());
+    end
+    if EnduranceUI.instance then
+        EnduranceUI.instance:updateLayout();
     end
     self:recalcDimensions(isIntoxicationVisible, isSicknessVisible);
 
     local screenW = getCore():getScreenWidth();
     local screenH = getCore():getScreenHeight();
-    self:setX(screenW - self:getWidth() - RIGHT_OFFSET);
-    self:setY(screenH - BOTTOM_OFFSET - CURRENT_ICON_SIZE);
+    self:setX(screenW - self:getWidth() - getSideOffset(self.iconSize));
+    self:setY(screenH - getBottomOffset(self.iconSize) - self.iconSize);
 
     if vehicle and vehicle:isDriver(player) and pscDash then
-        self:resolveCollisionWith(pscDash, isIntoxicationVisible, isSicknessVisible);
+        resolveCollisionWith(self, pscDash, isIntoxicationVisible, isSicknessVisible);
     end
     if vehicle and vehicle:isDriver(player) and dash then
-        self:resolveCollisionWith(dash, isIntoxicationVisible, isSicknessVisible);
+        resolveCollisionWith(self, dash, isIntoxicationVisible, isSicknessVisible);
     end
     if hotbar then
-        self:resolveCollisionWith(hotbar, isIntoxicationVisible, isSicknessVisible);
-    end
-
-    if EnduranceUI.instance then
-        EnduranceUI.instance:setVisible(true);
-        EnduranceUI.instance.layoutDirty = true;
+        resolveCollisionWith(self, hotbar, isIntoxicationVisible, isSicknessVisible);
     end
 
     self.cachedHotbarVis = hotbar and hotbar:isReallyVisible();
     self.cachedDashVis = dash and dash:isReallyVisible();
     self.cachedPscDashVis = pscDash and pscDash:isReallyVisible();
+    self.layoutDirty = false;
 end
 
-function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
-    local size = CURRENT_ICON_SIZE;
+function NeedsUI:recalcDimensions(showIntoxication, showSickness)
     local totalW = 0;
     local groupWidths = {};
     local visibleGroups = {};
@@ -665,11 +748,11 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
 
     for i, icons in ipairs(groupIcons) do
         if #icons > 0 then
-            local groupW = size;
+            local groupW = self.iconSize;
             for j = 2, #icons do
-                local _, rp = self:getIconPadPx(icons[j - 1]);
-                local lp, _ = self:getIconPadPx(icons[j]);
-                groupW = groupW + size - rp - lp + getIconGap(size);
+                local _, rp = getVisualPadPx(icons[j - 1], self.iconSize);
+                local lp, _ = getVisualPadPx(icons[j], self.iconSize);
+                groupW = groupW + self.iconSize - rp - lp + getIconGap(self.iconSize);
             end
             groupWidths[i] = groupW;
             totalW = totalW + groupW;
@@ -684,9 +767,9 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
                 if visibleGroups[j] then
                     local icons_i = groupIcons[i];
                     local icons_j = groupIcons[j];
-                    local _, lastRight = self:getIconPadPx(icons_i[#icons_i]);
-                    local firstLeft, _ = self:getIconPadPx(icons_j[1]);
-                    totalW = totalW + getGroupGap(size) - lastRight - firstLeft;
+                    local _, lastRight = getVisualPadPx(icons_i[#icons_i], self.iconSize);
+                    local firstLeft, _ = getVisualPadPx(icons_j[1], self.iconSize);
+                    totalW = totalW + getGroupGap(self.iconSize) - lastRight - firstLeft;
                     break;
                 end
             end
@@ -694,64 +777,170 @@ function SurvivalHUD:recalcDimensions(showIntoxication, showSickness)
     end
 
     self:setWidth(totalW);
-    self:setHeight(size);
+    self:setHeight(self.iconSize);
 
     self.groupWidths = groupWidths;
     self.visibleGroups = visibleGroups;
     self.groupIcons = groupIcons;
 end
 
-function SurvivalHUD:update()
+function NeedsUI:update()
     if self.layoutDirty then
         self:updateLayout();
-        self.layoutDirty = false;
     end
 end
 
-function SurvivalHUD:trackIconArrows(vals, now)
+local function getGameSeconds()
+    local gt = getGameTime();
+    if not gt then return 0; end
+    local minutesPerDay = gt:getMinutesPerDay() or 60;
+    return gt:getWorldAgeHours() * (minutesPerDay * 2.5);
+end
+
+local function getArrowThresholds(statType, player)
+    local base = ARROW_THRESHOLDS[statType];
+    local mult = 1.0;
+
+    if player and (statType == "Hunger" or statType == "Thirst" or statType == "Fatigue") then
+        local sb = getSandboxOptions();
+        if sb and sb.getStatsDecreaseMultiplier then
+            mult = mult * sb:getStatsDecreaseMultiplier();
+        end
+
+        if statType == "Thirst" then
+            if player:hasTrait(CharacterTrait.HIGH_THIRST) then
+                mult = mult * 2.0;
+            elseif player:hasTrait(CharacterTrait.LOW_THIRST) then
+                mult = mult * 0.5;
+            end
+        elseif statType == "Hunger" then
+            if player:hasTrait(CharacterTrait.HEARTY_APPETITE) then
+                mult = mult * 1.5;
+            elseif player:hasTrait(CharacterTrait.LIGHT_EATER) then
+                mult = mult * 0.75;
+            end
+        elseif statType == "Fatigue" then
+            if player:hasTrait(CharacterTrait.NEEDS_MORE_SLEEP) then
+                mult = mult * 1.3;
+            elseif player:hasTrait(CharacterTrait.NEEDS_LESS_SLEEP) then
+                mult = mult * 0.7;
+            end
+        end
+    end
+
+    if mult == 1.0 then
+        return base;
+    end
+
+    return {
+        tier1_enter = base.tier1_enter * mult,
+        tier1_exit = base.tier1_exit * mult,
+        tier2_enter = base.tier2_enter * mult,
+        tier2_exit = base.tier2_exit * mult,
+    };
+end
+
+function NeedsUI:trackIconArrows(vals, now)
+    local gameSec = getGameSeconds();
+    local player = getPlayer();
+
     for statType, val in pairs(vals) do
         local icon = self.icons[statType];
 
-        if val ~= val then
-            icon.lastVal = -1;
+        if not val or val ~= val or val < 0 then
+            icon.sampleVal = -1;
+            icon.sampleTime = 0;
+            icon.sampleGameSec = 0;
+            icon.rateTier = 0;
+            icon.filteredRate = 0;
+            icon.arrow.visible = false;
+            icon.arrow.tier = 0;
+        elseif not self:isStatVisible(statType, val) then
+            icon.arrow.visible = false;
+            icon.arrow.tier = 0;
+            icon.rateTier = 0;
+            icon.filteredRate = 0;
+            icon.sampleVal = val;
+            icon.sampleTime = now;
+            icon.sampleGameSec = gameSec;
+        elseif icon.sampleTime == 0 or icon.sampleVal == -1 then
+            icon.sampleVal = val;
+            icon.sampleTime = now;
+            icon.sampleGameSec = gameSec;
         else
-            if val ~= icon.lastVal and icon.lastVal ~= -1 then
-                icon.arrow.visible = true;
-                icon.arrow.time = now;
-                icon.arrow.dir = (val > icon.lastVal) and "up" or "down";
-            end
+            local timeDelta = now - icon.sampleTime;
+            local valDelta = val - icon.sampleVal;
+            local dtGame = gameSec - icon.sampleGameSec;
+            local isSpike = (statType == "Temperature") and (math.abs(valDelta) >= 0.2) or (math.abs(valDelta) >= 1.0);
 
-            local iconHidden = false;
-            if (statType == "Intoxication" and self.sleepNeeded) or statType == "Sickness" then
-                iconHidden = val <= 0;
-            elseif statType == "Temperature" then
-                iconHidden = val >= 36.55 and val <= 37.45;
-            else
-                iconHidden = val >= 99;
-            end
+            if timeDelta >= SAMPLE_INTERVAL_MS or isSpike then
+                if dtGame > 0.05 and dtGame < 300.0 then
+                    local rawRate = valDelta / dtGame;
+                    local alpha = 0.6;
+                    icon.filteredRate = icon.filteredRate + (rawRate - icon.filteredRate) * alpha;
 
-            if icon.arrow.visible
-                and (now - icon.arrow.time >= ARROW_DURATION or iconHidden) then
-                icon.arrow.visible = false;
-            end
+                    local cfg = getArrowThresholds(statType, player);
+                    local rate = icon.filteredRate;
+                    local absRate = math.abs(rate);
+                    local targetDir = (rate > 0) and "up" or "down";
 
-            icon.lastVal = val;
+                    local curRateTier = icon.rateTier;
+                    local targetRateTier = curRateTier;
+
+                    if curRateTier == 0 then
+                        if absRate >= cfg.tier2_enter then
+                            targetRateTier = 2;
+                        elseif absRate >= cfg.tier1_enter then
+                            targetRateTier = 1;
+                        end
+                    elseif curRateTier == 1 then
+                        if absRate >= cfg.tier2_enter then
+                            targetRateTier = 2;
+                        elseif absRate < cfg.tier1_exit then
+                            targetRateTier = 0;
+                        end
+                    elseif curRateTier == 2 then
+                        if absRate < cfg.tier2_exit then
+                            targetRateTier = (absRate >= cfg.tier1_exit) and 1 or 0;
+                        end
+                    end
+
+                    icon.rateTier = targetRateTier;
+
+                    if icon.rateTier > 0 then
+                        icon.arrow.tier = icon.rateTier;
+                        icon.arrow.dir = targetDir;
+                        icon.arrow.visible = true;
+                    else
+                        icon.arrow.tier = 0;
+                        icon.arrow.visible = false;
+                    end
+                else
+                    icon.filteredRate = 0;
+                    icon.rateTier = 0;
+                    icon.arrow.tier = 0;
+                    icon.arrow.visible = false;
+                end
+
+                icon.sampleVal = val;
+                icon.sampleTime = now;
+                icon.sampleGameSec = gameSec;
+            end
         end
     end
 end
 
-function SurvivalHUD:drawGroupSeparator(size, rightEdge, leftEdge, alpha)
-    local sepCfg = Utils.SeparatorConfig[size];
-    if not sepCfg then return; end
-    local sepTex = getTexture("media/ui/Separator/" .. sepCfg.texSize .. "/Separator.png");
+local function drawGroupSeparator(self, size, rightEdge, leftEdge, alpha)
+    local sepSize = Utils.SeparatorConfig[size];
+    if not sepSize then return; end
+    local sepTex = getTexture("media/ui/Separator/" .. sepSize .. "/Separator.png");
     if not sepTex then return; end
-    local renderSize = sepCfg.renderSize;
-    local sepX = math.floor((rightEdge + leftEdge) / 2 - renderSize / 2);
-    local sepY = math.floor((size - renderSize) / 2);
-    self:drawTextureScaled(sepTex, sepX, sepY, renderSize, renderSize, alpha, 1, 1, 1);
+    local sepX = math.floor((rightEdge + leftEdge) / 2 - sepSize / 2);
+    local sepY = math.floor((size - sepSize) / 2);
+    self:drawTexture(sepTex, sepX, sepY, alpha, 1, 1, 1);
 end
 
-function SurvivalHUD:isMouseOverNotBlocked(x, y, w, h)
+function NeedsUI:isMouseOverNotBlocked(x, y, w, h)
     if not self:isReallyVisible() then return false; end
 
     local mx = getMouseX();
@@ -787,17 +976,18 @@ function SurvivalHUD:isMouseOverNotBlocked(x, y, w, h)
     return true;
 end
 
-function SurvivalHUD:onMouseDown(x, y)
-    if getPlayer():isAiming() then return false; end
-    return true;
+local function swallowUnlessAiming()
+    local player = getPlayer();
+    return not (player and player:isAiming());
 end
 
-function SurvivalHUD:onMouseUp(x, y)
+NeedsUI.onMouseDown = swallowUnlessAiming;
+NeedsUI.onRightMouseDown = swallowUnlessAiming;
+NeedsUI.onRightMouseUp = swallowUnlessAiming;
+
+function NeedsUI:onMouseUp(x, y)
     local player = getPlayer();
     if player:isAiming() then return false; end
-    local mx = self:getMouseX();
-    local my = self:getMouseY();
-    local size = CURRENT_ICON_SIZE;
 
     local clickTargets = {
         { stat = "Health", view = "IGUI_XP_Health" },
@@ -805,96 +995,104 @@ function SurvivalHUD:onMouseUp(x, y)
     };
     for _, t in ipairs(clickTargets) do
         local pos = self.iconPos[t.stat];
-        if pos and mx >= pos.x and mx <= pos.x + size and my >= pos.y and my <= pos.y + size then
-            if self:isMouseOver() then
-                local infopanel = getPlayerInfoPanel(player:getPlayerNum());
-                if infopanel then
-                    infopanel:toggleView(getText(t.view));
-                    getSoundManager():playUISound("UISelectListItem");
+        if pos and pos.visible then
+            local leftPad, rightPad = getVisualPadPx(t.stat, self.iconSize);
+            local hitX = pos.x + leftPad;
+            local hitW = self.iconSize - leftPad - rightPad;
+            if x >= hitX and x <= hitX + hitW and y >= pos.y and y <= pos.y + self.iconSize then
+                if self:isMouseOver() then
+                    local infopanel = getPlayerInfoPanel(player:getPlayerNum());
+                    if infopanel then
+                        infopanel:toggleView(getText(t.view));
+                        getSoundManager():playUISound("UISelectListItem");
+                    end
+                    return true;
                 end
-                return true;
             end
         end
     end
     return true;
 end
 
-function SurvivalHUD:onRightMouseDown(x, y)
-    if getPlayer():isAiming() then return false; end
-    return true;
-end
-
-function SurvivalHUD:onRightMouseUp(x, y)
-    if getPlayer():isAiming() then return false; end
-    return true;
-end
-
-function SurvivalHUD:drawStatusIcon(x, y, statType, val, alpha)
+function NeedsUI:drawStatusIcon(x, y, statType, val, alpha)
+    local sizeStr = tostring(self.iconSize);
     local icon = self.icons[statType];
     local phase = self:getPhaseData(val, statType);
 
     if not phase then
         if statType == "Temperature" then
-            self.iconPos[statType] = { x = x, y = y };
-            local bgTex = getTexture(buildNeutralBgPath(tostring(CURRENT_ICON_SIZE), statType));
+            local pos = self.iconPos[statType];
+            pos.x = x;
+            pos.y = y;
+            pos.visible = true;
+            local bgTex = getTexture(buildNeutralBgPath(sizeStr, statType));
             if bgTex then
-                self:drawTextureScaled(bgTex, x, y, CURRENT_ICON_SIZE, CURRENT_ICON_SIZE, alpha, 1, 1, 1);
+                self:drawTextureScaled(bgTex, x, y, self.iconSize, self.iconSize, alpha, 1, 1, 1);
             end
         end
         return;
     end
 
-    self.iconPos[statType] = { x = x, y = y };
+    local pos = self.iconPos[statType];
+    pos.x = x;
+    pos.y = y;
+    pos.visible = true;
 
     local texVal = self:getBestTexture(val, statType, icon.texVal);
     if texVal then icon.texVal = texVal; end
 
-    local bgPath, iconPath = self:getTexturePaths(statType, phase, icon.texVal);
+    local bgPath, iconPath = buildTexturePaths(sizeStr, statType, phase, icon.texVal);
 
     local isCritical = CRITICAL_PHASE_LEVELS[statType] and CRITICAL_PHASE_LEVELS[statType][phase[3]];
     if isCritical and getTimestampMs() % CRITICAL_BLINK_PERIOD_MS < CRITICAL_BLINK_PERIOD_MS / 2 then
-        bgPath = buildNeutralBgPath(tostring(CURRENT_ICON_SIZE), statType);
+        bgPath = buildNeutralBgPath(sizeStr, statType);
     end
 
     if statType == "Hunger" and val > 95 then
         local player = getPlayer();
         local foodEatenTimer = player:getBodyDamage():getHealthFromFoodTimer();
-        local sizeStr = tostring(CURRENT_ICON_SIZE);
-        local level, threshold = self:getFoodEatenPhase(foodEatenTimer);
+        local level, threshold = getFoodEatenPhase(foodEatenTimer);
         if level then
             bgPath = "media/ui/Needs/" .. sizeStr .. "/FoodEaten/FoodEaten_Background_" .. level .. ".png";
             iconPath = "media/ui/Needs/" .. sizeStr .. "/FoodEaten/FoodEaten_" .. level .. "_" .. threshold .. ".png";
         end
     end
 
+    local fillAlpha = alpha;
+    if statType == "Health" and hasOpenWoundOrDirtyBandage(getPlayer()) then
+        local pulseProgress = (getTimestampMs() % CRITICAL_BLINK_PERIOD_MS) / CRITICAL_BLINK_PERIOD_MS;
+        local pulse = 0.75 - 0.25 * math.cos(pulseProgress * (math.pi * 2));
+        fillAlpha = alpha * pulse;
+    end
+
     local bgTex = getTexture(bgPath);
     if bgTex then
-        self:drawTextureScaled(bgTex, x, y, CURRENT_ICON_SIZE, CURRENT_ICON_SIZE, alpha, 1, 1, 1);
+        self:drawTextureScaled(bgTex, x, y, self.iconSize, self.iconSize, alpha, 1, 1, 1);
     end
 
     if texVal then
         local iconTex = getTexture(iconPath);
         if iconTex then
-            self:drawTextureScaled(iconTex, x, y, CURRENT_ICON_SIZE, CURRENT_ICON_SIZE, alpha, 1, 1, 1);
+            self:drawTextureScaled(iconTex, x, y, self.iconSize, self.iconSize, fillAlpha, 1, 1, 1);
         end
     end
 
-    if icon.arrow.visible then
-        local chevronCfg = CHEVRON_CONFIG[CURRENT_ICON_SIZE];
+    if icon.arrow.visible and icon.arrow.tier > 0 then
+        local chevronCfg = CHEVRON_CONFIG[self.iconSize];
         if chevronCfg then
-            local texSize = chevronCfg.texSize;
-            local renderSize = chevronCfg.renderSize;
-            local dir = icon.arrow.dir;
-            local arrowTex = getTexture("media/ui/Chevron/" .. texSize .. "/Chevron-" .. (dir == "up" and "Up" or "Down") .. ".png");
+            local arrowSize = chevronCfg.size;
+            local dirName = (icon.arrow.dir == "up") and "Up" or "Down";
+            local arrowTex = getTexture("media/ui/Arrow/" .. arrowSize .. "/" .. icon.arrow.tier .. "x_" .. dirName .. ".png");
             if arrowTex then
-                local arrowX = x + (CURRENT_ICON_SIZE - renderSize) / 2;
+                local arrowOffset = CHEVRON_CONFIG[self.iconSize].offsets[icon.arrow.tier];
+                local arrowX = math.floor(x + (self.iconSize - arrowSize) / 2);
                 local arrowY;
-                if dir == "up" then
-                    arrowY = y - renderSize + ARROW_OFFSET;
+                if icon.arrow.dir == "up" then
+                    arrowY = math.floor(y - arrowSize + arrowOffset);
                 else
-                    arrowY = y + CURRENT_ICON_SIZE - ARROW_OFFSET;
+                    arrowY = math.floor(y + self.iconSize - arrowOffset);
                 end
-                self:drawTextureScaled(arrowTex, arrowX, arrowY, renderSize, renderSize, alpha, 1, 1, 1);
+                self:drawTexture(arrowTex, arrowX, arrowY, alpha, 1, 1, 1);
             end
         end
     end
@@ -902,24 +1100,26 @@ function SurvivalHUD:drawStatusIcon(x, y, statType, val, alpha)
     if DEBUG_PADDING then
         local pad = ICON_VISUAL_PADDING[statType];
         if pad then
-            local size = CURRENT_ICON_SIZE;
-            local leftW  = math.floor(pad.left  * size);
-            local rightW = math.floor(pad.right * size);
+            local leftW  = math.floor(pad.left  * self.iconSize);
+            local rightW = math.floor(pad.right * self.iconSize);
             if leftW > 0 then
-                self:drawRect(x, y, leftW, size, 0.45, 1, 0.1, 0.1);
+                self:drawRect(x, y, leftW, self.iconSize, 0.45, 1, 0.1, 0.1);
             end
             if rightW > 0 then
-                self:drawRect(x + size - rightW, y, rightW, size, 0.45, 0.1, 0.4, 1);
+                self:drawRect(x + self.iconSize - rightW, y, rightW, self.iconSize, 0.45, 0.1, 0.4, 1);
             end
         end
     end
 end
 
-function SurvivalHUD:updateTooltipHover(vals, isIntoxicationVisible, isSicknessVisible)
+function NeedsUI:updateTooltipHover(vals, isIntoxicationVisible, isSicknessVisible)
     local anyHovered = false;
 
     for statType, pos in pairs(self.iconPos) do
-        local isHovered = self:isMouseOverNotBlocked(pos.x, pos.y, CURRENT_ICON_SIZE, CURRENT_ICON_SIZE);
+        local leftPad, rightPad = getVisualPadPx(statType, self.iconSize);
+        local hitX = pos.x + leftPad;
+        local hitW = self.iconSize - leftPad - rightPad;
+        local isHovered = pos.visible and self:isMouseOverNotBlocked(hitX, pos.y, hitW, self.iconSize);
 
         if isHovered then
             local iconHidden = (statType == "Intoxication" and not isIntoxicationVisible) or (statType == "Sickness" and not isSicknessVisible);
@@ -936,20 +1136,20 @@ function SurvivalHUD:updateTooltipHover(vals, isIntoxicationVisible, isSicknessV
     end
 end
 
-function SurvivalHUD:buildTooltipDescription(statType, val)
+local function buildTooltipDescription(statType, val)
     local player = getPlayer();
     local title = getText("Tooltip_HUD_" .. statType);
 
     local desc;
     if statType == "Temperature" then
-        if val ~= val then
+        if not val or val ~= val then
             desc = string.format("%s: NaN.", title);
         elseif getCore():getOptionDisplayAsCelsius() then
             desc = string.format("%s: %.1f C.", title, val);
         else
             desc = string.format("%s: %.1f F.", title, val * 9 / 5 + 32);
         end
-    elseif (statType == "Intoxication" or statType == "Sickness") and val <= 0 then
+    elseif (statType == "Intoxication" or statType == "Sickness") and (not val or val <= 0) then
         desc = string.format("%s: %s.", title, getText("Tooltip_HUD_None"));
     else
         desc = string.format("%s: %d%%", title, val);
@@ -980,56 +1180,51 @@ function SurvivalHUD:buildTooltipDescription(statType, val)
     return desc, weightArrowInfo;
 end
 
-function SurvivalHUD:buildMoodleDescription(statType, val)
+local function buildMoodleDescription(self, statType, val)
     local player = getPlayer();
     local phase = self:getPhaseData(val, statType);
-    if not phase then return nil; end
+    if not phase then return nil, nil; end
 
     local phaseLevel = phase[3];
     local moodleName = nil;
+    local foodEatenPhase = nil;
 
     if statType == "Temperature" then
-        if phaseLevel == "0" then return nil; end
+        if phaseLevel == "0" then return nil, nil; end
         moodleName = (phaseLevel:sub(1, 1) == "+") and "Hyperthermia" or "Hypothermia";
     elseif statType == "Hunger" and val > 95 then
         local foodEatenTimer = player:getBodyDamage():getHealthFromFoodTimer();
-        local level = self:getFoodEatenPhase(foodEatenTimer);
-        if not level then return nil; end
+        local level = getFoodEatenPhase(foodEatenTimer);
+        if not level then return nil, nil; end
         moodleName = "FoodEaten";
         phaseLevel = level;
-        self.tooltipUI.foodEatenPhase = level;
+        foodEatenPhase = level;
     elseif phaseLevel ~= 0 then
-        moodleName = MOODLE_NAMES[statType] or statType;
+        moodleName = MOODLE_NAMES[statType];
     end
 
-    if not moodleName then return nil; end
+    if not moodleName then return nil, foodEatenPhase; end
 
-    local levelSuffix;
-    if statType == "Temperature" then
-        levelSuffix = phaseLevel:sub(2);
-    else
-        levelSuffix = tostring(phaseLevel);
-    end
+    local levelSuffix = (statType == "Temperature") and phaseLevel:sub(2) or tostring(phaseLevel);
     local moodleDesc = getText("Moodles_" .. moodleName .. "_desc_lvl" .. levelSuffix);
     if moodleDesc then
-        return "\n\n" .. moodleDesc;
+        return "\n\n" .. moodleDesc, foodEatenPhase;
     end
-    return nil;
+    return nil, foodEatenPhase;
 end
 
-function SurvivalHUD:prepareTooltip(statType, val)
-    self.tooltipUI.foodEatenPhase = nil;
-
-    local desc, weightArrowInfo = self:buildTooltipDescription(statType, val);
-    local moodleDesc = self:buildMoodleDescription(statType, val);
+function NeedsUI:prepareTooltip(statType, val)
+    local desc, weightArrowInfo = buildTooltipDescription(statType, val);
+    local moodleDesc, foodEatenPhase = buildMoodleDescription(self, statType, val);
     if moodleDesc then
         desc = desc .. moodleDesc;
     end
 
+    self.tooltipUI.foodEatenPhase = foodEatenPhase;
     self.tooltipUI:showFor("icons", desc, statType, self.currentValues, weightArrowInfo);
 end
 
-function SurvivalHUD:prerender()
+function NeedsUI:prerender()
     local player = getPlayer();
     if not player or player:isDead() then
         self:setVisible(false);
@@ -1038,9 +1233,9 @@ function SurvivalHUD:prerender()
     self:setVisible(true);
 end
 
-function SurvivalHUD:render()
-    if SKIP_RENDER > 0 then
-        SKIP_RENDER = SKIP_RENDER - 1;
+function NeedsUI:render()
+    if self.skipRender and self.skipRender > 0 then
+        self.skipRender = self.skipRender - 1;
         return;
     end
 
@@ -1090,20 +1285,20 @@ function SurvivalHUD:render()
     self:trackIconArrows(vals, getTimestampMs());
 
     local curX = 0;
-    ---@diagnostic disable-next-line: undefined-field
-    table.wipe(self.iconPos);
-    local size = CURRENT_ICON_SIZE;
+    for _, pos in pairs(self.iconPos) do
+        pos.visible = false;
+    end
 
     for i, _ in ipairs(GROUPS) do
         if self.visibleGroups and self.visibleGroups[i] then
-            local icons = self.groupIcons and self.groupIcons[i] or {};
+            local icons = self.groupIcons[i];
 
             local iconX = curX;
             for j, statType in ipairs(icons) do
                 if j > 1 then
-                    local _, prevRight = self:getIconPadPx(icons[j - 1]);
-                    local curLeft, _ = self:getIconPadPx(statType);
-                    iconX = iconX + size - prevRight - curLeft + getIconGap(size);
+                    local _, prevRight = getVisualPadPx(icons[j - 1], self.iconSize);
+                    local curLeft, _ = getVisualPadPx(statType, self.iconSize);
+                    iconX = iconX + self.iconSize - prevRight - curLeft + getIconGap(self.iconSize);
                 end
                 self:drawStatusIcon(iconX, 0, statType, vals[statType], globalAlpha);
             end
@@ -1113,12 +1308,12 @@ function SurvivalHUD:render()
             if i < #GROUPS then
                 for j = i + 1, #GROUPS do
                     if self.visibleGroups[j] then
-                        local nextIcons = self.groupIcons and self.groupIcons[j] or {};
-                        local _, lastRight = self:getIconPadPx(icons[#icons]);
-                        local firstLeft, _ = self:getIconPadPx(nextIcons[1]);
+                        local nextIcons = self.groupIcons[j];
+                        local _, lastRight = getVisualPadPx(icons[#icons], self.iconSize);
+                        local firstLeft, _ = getVisualPadPx(nextIcons[1], self.iconSize);
 
-                        local nextGroupStart = curX + getGroupGap(size) - lastRight - firstLeft;
-                        self:drawGroupSeparator(size, curX - lastRight, nextGroupStart + firstLeft, globalAlpha * 0.5);
+                        local nextGroupStart = curX + getGroupGap(self.iconSize) - lastRight - firstLeft;
+                        drawGroupSeparator(self, self.iconSize, curX - lastRight, nextGroupStart + firstLeft, globalAlpha * 0.5);
 
                         curX = nextGroupStart;
                         break;
@@ -1135,7 +1330,7 @@ function SurvivalHUD:render()
     end
 end
 
-function SurvivalHUD:new(x, y, width, height)
+function NeedsUI:new(x, y, width, height)
     local o = ISPanel:new(x, y, width, height);
     setmetatable(o, self)
     self.__index = self
@@ -1143,12 +1338,15 @@ function SurvivalHUD:new(x, y, width, height)
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 };
     o.borderColor = { r = 0, g = 0, b = 0, a = 0 };
     o.fade = UITransition.new();
+    o.skipRender = 0;
+    o.iconSize = BASE_ICON_SIZE;
     o.icons = {};
     o.iconPos = {};
-    o.sleepNeeded = not isClient() or getServerOptions():getBoolean("SleepNeeded");
+    o.sleepNeeded = not isClient() or (getServerOptions():getBoolean("SleepNeeded") and getServerOptions():getBoolean("SleepAllowed"));
 
     for _, group in ipairs(GROUPS) do
         for _, statType in ipairs(group.icons) do
+            o.iconPos[statType] = { x = 0, y = 0, visible = false };
             local defaultTexVal;
             if statType == "Intoxication" then
                 defaultTexVal = 0;
@@ -1159,8 +1357,12 @@ function SurvivalHUD:new(x, y, width, height)
             end
             o.icons[statType] = {
                 texVal = defaultTexVal,
-                lastVal = -1,
-                arrow = { visible = false, dir = "up", time = 0 },
+                sampleVal = -1,
+                sampleTime = 0,
+                sampleGameSec = 0,
+                rateTier = 0,
+                filteredRate = 0,
+                arrow = { visible = false, dir = "up", tier = 0 },
             };
         end
     end
@@ -1168,24 +1370,99 @@ function SurvivalHUD:new(x, y, width, height)
     return o;
 end
 
+EnduranceUI.soundSpikeEndTime = 0;
+EnduranceUI.soundSpikeStage = 0;
+
 function EnduranceUI:initialise()
     ISPanel.initialise(self);
+    EnduranceUI.soundSpikeEndTime = 0;
+    EnduranceUI.soundSpikeStage = 0;
     self:updateLayout();
 end
 
 function EnduranceUI:updateLayout()
-    self.scale = CURRENT_ICON_SIZE / 64;
-    self.barW = 268 * self.scale;
+    self.iconSize = NeedsUI.instance and NeedsUI.instance.iconSize or BASE_ICON_SIZE;
+    self.scale = self.iconSize / 64;
+    self.barW = 250 * self.scale;
     self.barH = 8 * self.scale;
-    self.iconSize = 32 * self.scale;
+    self.radiusSize = COMPACT_ICON_SIZE_MAP[self.iconSize] or 48;
+    self.runnerSize = COMPACT_ICON_SIZE_MAP[self.iconSize] or 48;
 
-    local spacing = 10 * self.scale;
-    local totalW = self.iconSize + spacing + self.barW;
+    local _, radRightPad = getVisualPadPx("Radius", self.radiusSize);
+    local runnerLeftPad, runnerRightPad = getVisualPadPx("Endurance", self.runnerSize);
+
+    local spacing = math.floor(10 * self.scale + 0.5);
+    local runnerX = self.radiusSize - radRightPad - runnerLeftPad + spacing;
+    local barX = runnerX + self.runnerSize - runnerRightPad + spacing;
+    local totalW = barX + self.barW;
 
     self:setWidth(totalW);
-    self:setHeight(math.max(self.barH, self.iconSize));
-    self:setX(20);
-    self:setY(getCore():getScreenHeight() - 15 - self:getHeight());
+    self:setHeight(math.max(self.barH, self.runnerSize, self.radiusSize));
+    self:setX(getSideOffset(self.iconSize));
+    self:setY(getCore():getScreenHeight() - getBottomOffset(self.iconSize) - self:getHeight());
+    self.layoutDirty = false;
+end
+
+local function getSoundPhase(player)
+    if not player or player:isDead() or (player:isInvisible() or player:isGhostMode()) then
+        return 0;
+    end
+
+    local vehicle = player:getVehicle();
+    if vehicle then
+        if vehicle:isDriver(player) and vehicle:isEngineRunning() then
+            local loudness = vehicle:getEngineLoudness();
+            return radToStage(loudness);
+        end
+        return 0;
+    end
+
+    if not player:isPlayerMoving() then
+        return 0;
+    end
+
+    local isSneaking = player:isSneaking();
+    local speed = 0.50;
+    if player:isSprinting() then
+        speed = 1.00;
+    elseif isSneaking then
+        speed = 0.25;
+    elseif player:isRunning() then
+        speed = 0.75;
+    end
+
+    local mult = 1.4;
+    if CharacterTrait.GRACEFUL and player:hasTrait(CharacterTrait.GRACEFUL) then
+        mult = mult * 0.6;
+    end
+    if CharacterTrait.CLUMSY and player:hasTrait(CharacterTrait.CLUMSY) then
+        mult = mult * 1.2;
+    end
+    if not player:getClothingItem_Feet() then
+        mult = mult * 0.5;
+    end
+
+    local lightfoot = player:getLightfootMod() or 1.0;
+    local nimble = player:getNimbleMod() or 1.0;
+    mult = mult * lightfoot;
+    mult = mult * (2.0 - nimble);
+
+    if isSneaking then
+        local sneakMod = player:getSneakSpotMod() or 1.0;
+        mult = mult * sneakMod;
+    end
+
+    local sq = player:getCurrentSquare();
+    if sq and sq:getRoom() then
+        mult = mult * 0.5;
+    end
+
+    local rad = math.ceil(speed * mult * 10);
+    if isSneaking then
+        rad = math.max(1, rad);
+    end
+
+    return radToStage(rad);
 end
 
 function EnduranceUI:getPhase(val)
@@ -1204,38 +1481,25 @@ end
 
 function EnduranceUI:getColor(val)
     local phase = self:getPhase(val);
-    return PHASE_COLORS[phase] or { r = 1, g = 1, b = 1 };
+    return PHASE_COLORS[phase];
 end
 
-function EnduranceUI:onMouseDown(x, y)
-    if getPlayer():isAiming() then return false; end
-    return true;
-end
-
-function EnduranceUI:onMouseUp(x, y)
-    if getPlayer():isAiming() then return false; end
-    return true;
-end
-
-function EnduranceUI:onRightMouseDown(x, y)
-    if getPlayer():isAiming() then return false; end
-    return true;
-end
-
-function EnduranceUI:onRightMouseUp(x, y)
-    if getPlayer():isAiming() then return false; end
-    return true;
-end
+EnduranceUI.onMouseDown = swallowUnlessAiming;
+EnduranceUI.onMouseUp = swallowUnlessAiming;
+EnduranceUI.onRightMouseDown = swallowUnlessAiming;
+EnduranceUI.onRightMouseUp = swallowUnlessAiming;
 
 function EnduranceUI:update()
     if self.layoutDirty then
         self:updateLayout();
-        self.layoutDirty = false;
     end
 end
 
 function EnduranceUI:render()
-    if SKIP_RENDER > 0 then return; end
+    if self.skipRender and self.skipRender > 0 then
+        self.skipRender = self.skipRender - 1;
+        return;
+    end
 
     local player = getPlayer();
     if not player or player:isDead() then
@@ -1251,7 +1515,7 @@ function EnduranceUI:render()
     local val = player:getStats():get(CharacterStat.ENDURANCE);
 
     local provider = EnduranceUI.capacityProvider;
-    local capFrac = provider and provider(player) or nil;
+    local capFrac = provider and provider(player);
     if capFrac then
         self.displayVal = self.displayVal and (self.displayVal + (val - self.displayVal) * 0.2) or val;
         val = self.displayVal;
@@ -1269,14 +1533,45 @@ function EnduranceUI:render()
     if globalAlpha <= 0 then return; end
 
     local phase = self:getPhase(val);
-    local sizeStr = tostring(CURRENT_ICON_SIZE);
-    local runTex = getTexture("media/ui/Needs/" .. sizeStr .. "/Endurance/Endurance_" .. phase .. ".png");
+    local runnerSize = self.runnerSize;
+    local runTex = getTexture("media/ui/Endurance/" .. runnerSize .. "/Endurance_" .. phase .. ".png");
+    local spacing = math.floor(10 * self.scale + 0.5);
 
-    if runTex then
-        self:drawTextureScaled(runTex, 0, (self:getHeight() - self.iconSize) / 2, self.iconSize, self.iconSize, globalAlpha, 1, 1, 1);
+    local radSize = self.radiusSize;
+    local radX = 0;
+    local radY = math.floor((self:getHeight() - radSize) / 2);
+
+    local movementPhase = getSoundPhase(player);
+    local activePhase = movementPhase;
+    local now = getTimestampMs();
+    if now < EnduranceUI.soundSpikeEndTime then
+        if player:isPlayerMoving() or EnduranceUI.soundSpikeStage > 2 then
+            activePhase = math.max(activePhase, EnduranceUI.soundSpikeStage);
+        end
     end
 
-    local barX = self.iconSize + 10 * self.scale;
+    local bgRadTex = getTexture("media/ui/Radius/" .. radSize .. "/Radius_4.png");
+    if bgRadTex then
+        self:drawTextureScaled(bgRadTex, radX, radY, radSize, radSize, 0.5 * globalAlpha, 1, 1, 1);
+    end
+
+    if activePhase > 0 then
+        local fillRadTex = getTexture("media/ui/Radius/" .. radSize .. "/Radius_" .. activePhase .. ".png");
+        if fillRadTex then
+            self:drawTextureScaled(fillRadTex, radX, radY, radSize, radSize, globalAlpha, 1, 1, 1);
+        end
+    end
+
+    local _, radRightPad = getVisualPadPx("Radius", radSize);
+    local runnerLeftPad, runnerRightPad = getVisualPadPx("Endurance", runnerSize);
+
+    local runnerX = radSize - radRightPad - runnerLeftPad + spacing;
+    local runnerY = (self:getHeight() - runnerSize) / 2;
+    if runTex then
+        self:drawTexture(runTex, runnerX, runnerY, globalAlpha, 1, 1, 1);
+    end
+
+    local barX = runnerX + runnerSize - runnerRightPad + spacing;
     local barY = (self:getHeight() - self.barH) / 2;
 
     local fillW = math.max(0, self.barW * val);
@@ -1297,39 +1592,25 @@ function EnduranceUI:render()
         self:drawRect(barX, barY, fillW, self.barH, globalAlpha, col.r, col.g, col.b);
     end
 
-    local weapon = getRangedWeapon(player);
-    if weapon and weapon:getMaxAmmo() > 0 then
-        local font = self.scale < 1 and UIFont.Small or UIFont.Medium;
-        local statusText = getAmmoDisplayText(weapon);
-        local statusWidth = getTextManager():MeasureStringX(font, statusText);
-        local fontHgt = getTextManager():getFontHeight(font);
-        local textY = barY - fontHgt - 6 * self.scale;
-        local nameMaxWidth = self.barW - statusWidth - 8 * self.scale;
+    local tooltipUI = NeedsUI.instance and NeedsUI.instance.tooltipUI;
+    if tooltipUI then
+        if globalAlpha > TOOLTIP_ALPHA_THRESHOLD and self:isMouseOver() and self:getMouseX() >= runnerX and not player:isAiming() then
+            local title = getText("Tooltip_HUD_Endurance");
+            local desc = string.format("%s: %d%%", title, math.floor(val * 100 + 0.5));
 
-        local name = truncateNameToWidth(weapon:getDisplayName(), font, nameMaxWidth);
-        if name then
-            self:drawText(name, barX + 1, textY + 1, 0, 0, 0, globalAlpha, font);
-            self:drawText(name, barX, textY, 1, 1, 1, globalAlpha, font);
-        end
-        self:drawTextRight(statusText, barX + self.barW + 1, textY + 1, 0, 0, 0, globalAlpha, font);
-        self:drawTextRight(statusText, barX + self.barW, textY, 1, 1, 1, globalAlpha, font);
-    end
-
-    if globalAlpha > TOOLTIP_ALPHA_THRESHOLD and self:isMouseOver() and not player:isAiming() then
-        local title = getText("Tooltip_HUD_Endurance");
-        local desc = string.format("%s: %d%%", title, math.floor(val * 100 + 0.5));
-
-        if phase > 0 then
-            local moodleDesc = getText("Moodles_Endurance_desc_lvl" .. phase);
-            if moodleDesc then
-                desc = desc .. "\n" .. moodleDesc;
+            if phase > 0 then
+                local moodleDesc = getText("Moodles_Endurance_desc_lvl" .. phase);
+                if moodleDesc then
+                    desc = desc .. "\n" .. moodleDesc;
+                end
             end
-        end
 
-        local currentValues = { Endurance = val };
-        SurvivalHUD.instance.tooltipUI:showFor("endurance", desc, "Endurance", currentValues, nil);
-    else
-        SurvivalHUD.instance.tooltipUI:hideFor("endurance");
+            self.currentValues = self.currentValues or {};
+            self.currentValues.Endurance = val;
+            tooltipUI:showFor("endurance", desc, "Endurance", self.currentValues, nil);
+        else
+            tooltipUI:hideFor("endurance");
+        end
     end
 end
 
@@ -1341,44 +1622,53 @@ function EnduranceUI:new(x, y, width, height)
     o.backgroundColor = { r = 0, g = 0, b = 0, a = 0 };
     o.borderColor = { r = 0, g = 0, b = 0, a = 0 };
     o.fade = UITransition.new();
+    o.skipRender = 0;
+    o.iconSize = BASE_ICON_SIZE;
+    o.radiusSize = COMPACT_ICON_SIZE_MAP[BASE_ICON_SIZE] or 48;
+    o.runnerSize = COMPACT_ICON_SIZE_MAP[BASE_ICON_SIZE] or 48;
 
     return o;
 end
 
 local function onCreatePlayer()
-    if SurvivalHUD.instance then
-        if SurvivalHUD.instance.tooltipUI then
-            SurvivalHUD.instance.tooltipUI:removeFromUIManager();
+    if NeedsUI.instance then
+        if NeedsUI.instance.tooltipUI then
+            NeedsUI.instance.tooltipUI:removeFromUIManager();
         end
-        SurvivalHUD.instance:removeFromUIManager();
+        NeedsUI.instance:removeFromUIManager();
     end
     if EnduranceUI.instance then
         EnduranceUI.instance:removeFromUIManager();
     end
 
-    SurvivalHUD.instance = SurvivalHUD:new(0, 0, 100, 100);
-    SurvivalHUD.instance:initialise();
-    SurvivalHUD.instance:addToUIManager();
-    SurvivalHUD.instance:backMost();
+    NeedsUI.instance = NeedsUI:new(0, 0, 100, 100);
+    NeedsUI.instance:initialise();
+    NeedsUI.instance:addToUIManager();
+    NeedsUI.instance:backMost();
 
     EnduranceUI.instance = EnduranceUI:new(0, 0, 100, 100);
     EnduranceUI.instance:initialise();
     EnduranceUI.instance:addToUIManager();
     EnduranceUI.instance:backMost();
 
-    SurvivalHUD.instance.layoutDirty = true;
+    NeedsUI.instance.layoutDirty = true;
     EnduranceUI.instance.layoutDirty = true;
 end
 
 local function onResolutionChange()
-    SKIP_RENDER = 15;
-    if SurvivalHUD.instance then SurvivalHUD.instance.layoutDirty = true; end
-    if EnduranceUI.instance then EnduranceUI.instance.layoutDirty = true; end
+    if NeedsUI.instance then
+        NeedsUI.instance.layoutDirty = true;
+        NeedsUI.instance.skipRender = 15;
+    end
+    if EnduranceUI.instance then
+        EnduranceUI.instance.layoutDirty = true;
+        EnduranceUI.instance.skipRender = 15;
+    end
 end
 
 local function onPlayerUpdate()
-    if SurvivalHUD.instance then
-        SurvivalHUD.instance.layoutDirty = true;
+    if NeedsUI.instance then
+        NeedsUI.instance.layoutDirty = true;
     end
     if EnduranceUI.instance then
         EnduranceUI.instance.layoutDirty = true;
@@ -1386,14 +1676,16 @@ local function onPlayerUpdate()
 end
 
 local function onPlayerDeath()
-    if SurvivalHUD.instance then
-        if SurvivalHUD.instance.tooltipUI then
-            SurvivalHUD.instance.tooltipUI:removeFromUIManager();
+    if NeedsUI.instance then
+        if NeedsUI.instance.tooltipUI then
+            NeedsUI.instance.tooltipUI:removeFromUIManager();
         end
-        SurvivalHUD.instance:removeFromUIManager();
-        SurvivalHUD.instance = nil;
+        NeedsUI.instance:removeFromUIManager();
+        NeedsUI.instance = nil;
     end
     if EnduranceUI.instance then
+        EnduranceUI.soundSpikeEndTime = 0;
+        EnduranceUI.soundSpikeStage = 0;
         EnduranceUI.instance:removeFromUIManager();
         EnduranceUI.instance = nil;
     end
@@ -1414,23 +1706,90 @@ local function onGameBoot()
             end
         end
 
-        for i = 0, 4 do
-            getTexture("media/ui/Needs/" .. sizeStr .. "/Endurance/Endurance_" .. i .. ".png");
-        end
-
         for _, t in ipairs(FOOD_EATEN_THRESHOLDS) do
             getTexture("media/ui/Needs/" .. sizeStr .. "/FoodEaten/FoodEaten_Background_" .. t.level .. ".png");
             getTexture("media/ui/Needs/" .. sizeStr .. "/FoodEaten/FoodEaten_" .. t.level .. "_" .. t.timer .. ".png");
         end
     end
 
-    for _, texSize in ipairs({ 16, 24, 32 }) do
-        getTexture("media/ui/Chevron/" .. texSize .. "/Chevron-Up.png");
-        getTexture("media/ui/Chevron/" .. texSize .. "/Chevron-Down.png");
+    for _, texSize in ipairs({ 12, 16, 20 }) do
+        getTexture("media/ui/Arrow/" .. texSize .. "/1x_Up.png");
+        getTexture("media/ui/Arrow/" .. texSize .. "/1x_Down.png");
+        getTexture("media/ui/Arrow/" .. texSize .. "/2x_Up.png");
+        getTexture("media/ui/Arrow/" .. texSize .. "/2x_Down.png");
+    end
+
+    for _, texSize in ipairs({ 24, 32, 40 }) do
+        getTexture("media/ui/Separator/" .. texSize .. "/Separator.png");
     end
 
     for _, texSize in ipairs({ 32, 48, 64 }) do
-        getTexture("media/ui/Separator/" .. texSize .. "/Separator.png");
+        for phase = 1, 4 do
+            getTexture("media/ui/Radius/" .. texSize .. "/Radius_" .. phase .. ".png");
+        end
+        for phase = 0, 4 do
+            getTexture("media/ui/Endurance/" .. texSize .. "/Endurance_" .. phase .. ".png");
+        end
+    end
+
+    getTexture("media/ui/chevron_up.png");
+    getTexture("media/ui/chevron_double.png");
+    getTexture("media/ui/chevron_down.png");
+end
+
+local function onWorldSound(x, y, z, radius, volume, source)
+    local player = getPlayer();
+    if not player or player:isDead() or (player:isInvisible() or player:isGhostMode()) then return; end
+    local vehicle = player:getVehicle();
+    local isDriver = vehicle and vehicle:isDriver(player);
+    local isPlayerSource = (source == player) or (isDriver and source == vehicle);
+    if not isPlayerSource and source == nil then
+        isPlayerSource = (x == math.floor(player:getX()) and y == math.floor(player:getY()) and z == math.floor(player:getZ()));
+    end
+    if not isPlayerSource then return; end
+
+    local spikeStage = radToStage(radius);
+    if spikeStage > 0 then
+        local currentPhase = getSoundPhase(player);
+        if spikeStage > currentPhase or radius >= 15 then
+            EnduranceUI.soundSpikeStage = spikeStage;
+            EnduranceUI.soundSpikeEndTime = getTimestampMs() + 750;
+        end
+    end
+end
+
+local function canFirearmShoot(player, weapon)
+    if not player:isAiming() then
+        return false;
+    end
+    if player:isDoShove() then
+        return false;
+    end
+    if weapon:isJammed() then
+        return false;
+    end
+    if player:isUnlimitedAmmo() then
+        return true;
+    end
+    if weapon:haveChamber() then
+        if not weapon:isRoundChambered() or weapon:isSpentRoundChambered() then
+            return false;
+        end
+    elseif weapon:getCurrentAmmoCount() <= 0 then
+        return false;
+    end
+    return true;
+end
+
+local function onWeaponSwing(player, weapon)
+    if not player or player:isDead() or not player:isLocalPlayer() or (player:isInvisible() or player:isGhostMode()) then return; end
+    if weapon and instanceof(weapon, "HandWeapon") and weapon:isRanged() then
+        if canFirearmShoot(player, weapon) then
+            local radius = weapon:getSoundRadius();
+            local spikeStage = radToStage(radius);
+            EnduranceUI.soundSpikeStage = spikeStage;
+            EnduranceUI.soundSpikeEndTime = getTimestampMs() + 750;
+        end
     end
 end
 
@@ -1441,5 +1800,6 @@ Events.OnClothingUpdated.Add(onPlayerUpdate);
 Events.OnEnterVehicle.Add(onPlayerUpdate);
 Events.OnExitVehicle.Add(onPlayerUpdate);
 Events.OnSwitchVehicleSeat.Add(onPlayerUpdate);
-
+Events.OnWorldSound.Add(onWorldSound);
+Events.OnWeaponSwing.Add(onWeaponSwing);
 Events.OnGameBoot.Add(onGameBoot);
