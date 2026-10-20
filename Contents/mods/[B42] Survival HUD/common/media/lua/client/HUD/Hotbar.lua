@@ -642,6 +642,24 @@ function ISHotbar:update()
         end
     end
 
+    local queue = ISTimedActionQueue.queues[self.character];
+    if not (queue and #queue.queue > 0) then
+        for i, item in pairs(self.attachedItems) do
+            local slot = self.availableSlot[item:getAttachedSlot()]
+            if not slot or not self:canBeAttached(slot, item) or not self.chr:getInventory():contains(item) or item:isBroken() then
+                self:removeItem(item, false);
+                self.chr:removeAttachedItem(item);
+            else
+                local slotDef = slot.def;
+                if self.chr:isEquipped(item) then
+                    self.chr:removeAttachedItem(item);
+                elseif not self.chr:getAttachedItem(item:getAttachedToModel()) then
+                    self:attachItem(item, slotDef.attachments[item:getAttachmentType()], item:getAttachedSlot(), slotDef, false)
+                end
+            end
+        end
+    end
+
     if not isMouseOverNotBlocked(self) then
         if self.toolRender then
             self.toolRender:setVisible(false);
@@ -680,26 +698,6 @@ function ISHotbar:update()
         self.toolRender:setVisible(true);
     elseif self.toolRender then
         self.toolRender:setVisible(false);
-    end
-
-    local queue = ISTimedActionQueue.queues[self.character];
-    if queue and #queue.queue > 0 then
-        return;
-    end
-
-    for i, item in pairs(self.attachedItems) do
-        local slot = self.availableSlot[item:getAttachedSlot()]
-        if not slot or not self:canBeAttached(slot, item) or not self.chr:getInventory():contains(item) or item:isBroken() then
-            self:removeItem(item, false);
-            self.chr:removeAttachedItem(item);
-        else
-            local slotDef = slot.def;
-            if self.chr:isEquipped(item) then
-                self.chr:removeAttachedItem(item);
-            elseif not self.chr:getAttachedItem(item:getAttachedToModel()) then
-                self:attachItem(item, slotDef.attachments[item:getAttachmentType()], item:getAttachedSlot(), slotDef, false)
-            end
-        end
     end
 end
 
