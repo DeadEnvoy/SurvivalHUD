@@ -1,3 +1,7 @@
+# 1.3.2
+**FIXES**
+- Fixed an item remaining visible in its hotbar slot after being dropped.
+
 # 1.3.1
 **UI**
 - The sidebar health icon has been restored.
