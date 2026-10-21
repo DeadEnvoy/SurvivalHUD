@@ -21,4 +21,8 @@ function Utils.clamp100(x)
 	return math.max(0, math.min(100, x));
 end
 
+function Utils.getPackTexture(path)
+	return getTexture("SurvivalHUD_" .. path:gsub("^media/", ""):gsub("%.png$", ""):gsub("[/%s]", "_"));
+end
+
 return Utils;

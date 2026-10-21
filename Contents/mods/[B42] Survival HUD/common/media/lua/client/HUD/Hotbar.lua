@@ -18,11 +18,11 @@ local function getSepSize(slotSize)
 end
 
 local function getSlotTexture(slotSize, textureName)
-    return getTexture("media/ui/Hotbar/" .. slotSize .. "/Slot/" .. textureName .. ".png");
+    return Utils.getPackTexture("media/ui/Hotbar/" .. slotSize .. "/Slot/" .. textureName .. ".png");
 end
 
 local function getHandTexture(slotSize, textureName)
-    return getTexture("media/ui/Hotbar/" .. slotSize .. "/Hand/" .. textureName .. ".png");
+    return Utils.getPackTexture("media/ui/Hotbar/" .. slotSize .. "/Hand/" .. textureName .. ".png");
 end
 
 function ISHotbar:setBaseSlotSize(size)
@@ -120,7 +120,7 @@ local function getConditionTexture(conditionPercent, currentTexVal, kind, isFlui
     if not texVal or not phase then return nil, nil; end
     local phaseLevel = phase[3];
     local fluids = isFluid and "/Fluids" or "";
-    local tex = getTexture("media/ui/Hotbar/" .. slotSize .. "/" .. kind .. fluids .. "/" .. kind .. "_" .. phaseLevel .. "_" .. texVal .. ".png");
+    local tex = Utils.getPackTexture("media/ui/Hotbar/" .. slotSize .. "/" .. kind .. fluids .. "/" .. kind .. "_" .. phaseLevel .. "_" .. texVal .. ".png");
     return tex, texVal;
 end
 
@@ -339,7 +339,7 @@ local function drawSeparator(self, x)
     local sepTotalW = getSepSize(self.slotSize);
     local lineInset = math.floor(4 * self.slotSize / 64 + 0.5);
     if sepSize then
-        local sep = getTexture("media/ui/Separator/" .. sepSize .. "/Separator.png");
+        local sep = Utils.getPackTexture("media/ui/Separator/" .. sepSize .. "/Separator.png");
         if sep then
             local sx = x + math.floor((sepTotalW - sepSize) / 2);
             local sy = HOTBAR_MARGIN + math.floor((self.slotSize - sepSize) / 2);
@@ -961,19 +961,19 @@ local function onGameBoot()
     for _, size in ipairs({ 48, 64, 80 }) do
         for _, kind in ipairs({ "Slot", "Hand" }) do
             for _, textureName in ipairs({ kind .. "_Background", kind .. "_Selected" }) do
-                getTexture("media/ui/Hotbar/" .. size .. "/" .. kind .. "/" .. textureName .. ".png");
+                Utils.getPackTexture("media/ui/Hotbar/" .. size .. "/" .. kind .. "/" .. textureName .. ".png");
             end
             if kind == "Hand" then
-                getTexture("media/ui/Hotbar/" .. size .. "/Hand/Hand_Hover.png");
+                Utils.getPackTexture("media/ui/Hotbar/" .. size .. "/Hand/Hand_Hover.png");
             end
 
             for _, phaseData in ipairs(CONDITION_PHASES) do
                 local phaseLevel = phaseData[3];
                 for _, threshold in ipairs(phaseData[4]) do
-                    getTexture("media/ui/Hotbar/" .. size .. "/" .. kind .. "/" .. kind .. "_" .. phaseLevel .. "_" .. threshold .. ".png");
+                    Utils.getPackTexture("media/ui/Hotbar/" .. size .. "/" .. kind .. "/" .. kind .. "_" .. phaseLevel .. "_" .. threshold .. ".png");
                     local fluidPath = "media/ui/Hotbar/" .. size .. "/" .. kind .. "/Fluids/" .. kind .. "_" .. phaseLevel .. "_" .. threshold .. ".png";
                     if fileExists(fluidPath) then
-                        getTexture(fluidPath);
+                        Utils.getPackTexture(fluidPath);
                     end
                 end
             end

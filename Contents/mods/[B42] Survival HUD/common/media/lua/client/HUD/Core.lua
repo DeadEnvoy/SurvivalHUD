@@ -933,7 +933,7 @@ end
 local function drawGroupSeparator(self, size, rightEdge, leftEdge, alpha)
     local sepSize = Utils.SeparatorConfig[size];
     if not sepSize then return; end
-    local sepTex = getTexture("media/ui/Separator/" .. sepSize .. "/Separator.png");
+    local sepTex = Utils.getPackTexture("media/ui/Separator/" .. sepSize .. "/Separator.png");
     if not sepTex then return; end
     local sepX = math.floor((rightEdge + leftEdge) / 2 - sepSize / 2);
     local sepY = math.floor((size - sepSize) / 2);
@@ -1025,7 +1025,7 @@ function NeedsUI:drawStatusIcon(x, y, statType, val, alpha)
             pos.x = x;
             pos.y = y;
             pos.visible = true;
-            local bgTex = getTexture(buildNeutralBgPath(sizeStr, statType));
+            local bgTex = Utils.getPackTexture(buildNeutralBgPath(sizeStr, statType));
             if bgTex then
                 self:drawTextureScaled(bgTex, x, y, self.iconSize, self.iconSize, alpha, 1, 1, 1);
             end
@@ -1065,13 +1065,13 @@ function NeedsUI:drawStatusIcon(x, y, statType, val, alpha)
         fillAlpha = alpha * pulse;
     end
 
-    local bgTex = getTexture(bgPath);
+    local bgTex = Utils.getPackTexture(bgPath);
     if bgTex then
         self:drawTextureScaled(bgTex, x, y, self.iconSize, self.iconSize, alpha, 1, 1, 1);
     end
 
     if texVal then
-        local iconTex = getTexture(iconPath);
+        local iconTex = Utils.getPackTexture(iconPath);
         if iconTex then
             self:drawTextureScaled(iconTex, x, y, self.iconSize, self.iconSize, fillAlpha, 1, 1, 1);
         end
@@ -1082,7 +1082,7 @@ function NeedsUI:drawStatusIcon(x, y, statType, val, alpha)
         if chevronCfg then
             local arrowSize = chevronCfg.size;
             local dirName = (icon.arrow.dir == "up") and "Up" or "Down";
-            local arrowTex = getTexture("media/ui/Arrow/" .. arrowSize .. "/" .. icon.arrow.tier .. "x_" .. dirName .. ".png");
+            local arrowTex = Utils.getPackTexture("media/ui/Arrow/" .. arrowSize .. "/" .. icon.arrow.tier .. "x_" .. dirName .. ".png");
             if arrowTex then
                 local arrowOffset = CHEVRON_CONFIG[self.iconSize].offsets[icon.arrow.tier];
                 local arrowX = math.floor(x + (self.iconSize - arrowSize) / 2);
@@ -1534,7 +1534,7 @@ function EnduranceUI:render()
 
     local phase = self:getPhase(val);
     local runnerSize = self.runnerSize;
-    local runTex = getTexture("media/ui/Endurance/" .. runnerSize .. "/Endurance_" .. phase .. ".png");
+    local runTex = Utils.getPackTexture("media/ui/Endurance/" .. runnerSize .. "/Endurance_" .. phase .. ".png");
     local spacing = math.floor(10 * self.scale + 0.5);
 
     local radSize = self.radiusSize;
@@ -1550,13 +1550,13 @@ function EnduranceUI:render()
         end
     end
 
-    local bgRadTex = getTexture("media/ui/Radius/" .. radSize .. "/Radius_4.png");
+    local bgRadTex = Utils.getPackTexture("media/ui/Radius/" .. radSize .. "/Radius_4.png");
     if bgRadTex then
         self:drawTextureScaled(bgRadTex, radX, radY, radSize, radSize, 0.5 * globalAlpha, 1, 1, 1);
     end
 
     if activePhase > 0 then
-        local fillRadTex = getTexture("media/ui/Radius/" .. radSize .. "/Radius_" .. activePhase .. ".png");
+        local fillRadTex = Utils.getPackTexture("media/ui/Radius/" .. radSize .. "/Radius_" .. activePhase .. ".png");
         if fillRadTex then
             self:drawTextureScaled(fillRadTex, radX, radY, radSize, radSize, globalAlpha, 1, 1, 1);
         end
@@ -1698,37 +1698,37 @@ local function onGameBoot()
         for statType, phases in pairs(PHASES) do
             for _, phase in ipairs(phases) do
                 local bgPath = buildTexturePaths(sizeStr, statType, phase, phase[4][1]);
-                getTexture(bgPath);
+                Utils.getPackTexture(bgPath);
                 for _, val in ipairs(phase[4]) do
                     local _, iconPath = buildTexturePaths(sizeStr, statType, phase, val);
-                    getTexture(iconPath);
+                    Utils.getPackTexture(iconPath);
                 end
             end
         end
 
         for _, t in ipairs(FOOD_EATEN_THRESHOLDS) do
-            getTexture("media/ui/Needs/" .. sizeStr .. "/FoodEaten/FoodEaten_Background_" .. t.level .. ".png");
-            getTexture("media/ui/Needs/" .. sizeStr .. "/FoodEaten/FoodEaten_" .. t.level .. "_" .. t.timer .. ".png");
+            Utils.getPackTexture("media/ui/Needs/" .. sizeStr .. "/FoodEaten/FoodEaten_Background_" .. t.level .. ".png");
+            Utils.getPackTexture("media/ui/Needs/" .. sizeStr .. "/FoodEaten/FoodEaten_" .. t.level .. "_" .. t.timer .. ".png");
         end
     end
 
     for _, texSize in ipairs({ 12, 16, 20 }) do
-        getTexture("media/ui/Arrow/" .. texSize .. "/1x_Up.png");
-        getTexture("media/ui/Arrow/" .. texSize .. "/1x_Down.png");
-        getTexture("media/ui/Arrow/" .. texSize .. "/2x_Up.png");
-        getTexture("media/ui/Arrow/" .. texSize .. "/2x_Down.png");
+        Utils.getPackTexture("media/ui/Arrow/" .. texSize .. "/1x_Up.png");
+        Utils.getPackTexture("media/ui/Arrow/" .. texSize .. "/1x_Down.png");
+        Utils.getPackTexture("media/ui/Arrow/" .. texSize .. "/2x_Up.png");
+        Utils.getPackTexture("media/ui/Arrow/" .. texSize .. "/2x_Down.png");
     end
 
     for _, texSize in ipairs({ 24, 32, 40 }) do
-        getTexture("media/ui/Separator/" .. texSize .. "/Separator.png");
+        Utils.getPackTexture("media/ui/Separator/" .. texSize .. "/Separator.png");
     end
 
     for _, texSize in ipairs({ 32, 48, 64 }) do
         for phase = 1, 4 do
-            getTexture("media/ui/Radius/" .. texSize .. "/Radius_" .. phase .. ".png");
+            Utils.getPackTexture("media/ui/Radius/" .. texSize .. "/Radius_" .. phase .. ".png");
         end
         for phase = 0, 4 do
-            getTexture("media/ui/Endurance/" .. texSize .. "/Endurance_" .. phase .. ".png");
+            Utils.getPackTexture("media/ui/Endurance/" .. texSize .. "/Endurance_" .. phase .. ".png");
         end
     end
 

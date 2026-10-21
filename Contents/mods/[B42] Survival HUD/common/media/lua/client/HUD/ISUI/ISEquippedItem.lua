@@ -1,5 +1,7 @@
 require "ISUI/ISEquippedItem";
 
+local Utils = require("HUD/Utils");
+
 local function filterButtons(...)
     local list = {};
     for i = 1, select("#", ...) do
@@ -121,12 +123,12 @@ Functions.PostHook.Add(ISEquippedItem, "initialise", function(self)
         end
     end
 
-    self.skillsIconOn = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Skills_On_" .. self.btnWidth .. ".png");
-    self.skillsIconOff = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Skills_Off_" .. self.btnWidth .. ".png");
+    self.skillsIconOn = Utils.getPackTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Skills_On_" .. self.btnWidth .. ".png");
+    self.skillsIconOff = Utils.getPackTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Skills_Off_" .. self.btnWidth .. ".png");
 
     if self.invBtn then
-        self.tutorialIconOn = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Tutorial_On_" .. self.btnWidth .. ".png");
-        self.tutorialIconOff = getTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Tutorial_Off_" .. self.btnWidth .. ".png");
+        self.tutorialIconOn = Utils.getPackTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Tutorial_On_" .. self.btnWidth .. ".png");
+        self.tutorialIconOff = Utils.getPackTexture("media/ui/Sidebar/" .. self.btnWidth .. "/Tutorial_Off_" .. self.btnWidth .. ".png");
 
         self.tutorialBtn = ISButton:new(0, 0, self.btnWidth, self.btnHeight, "", self, ISEquippedItem.onOptionMouseDown);
         self.tutorialBtn:setImage(self.tutorialIconOff);
