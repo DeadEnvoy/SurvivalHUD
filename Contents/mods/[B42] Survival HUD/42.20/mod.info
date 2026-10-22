@@ -5,9 +5,10 @@ author=DeadEnvoy
 category=Interface
 icon=icon.png
 poster=poster.png
+pack=SurvivalHUD type=ui
 versionMin=42.20
 versionMax=42.99
-modversion=1.3.2
+modversion=1.3.3
 require=ModManager,moodlesinlua
 incompatible=CleanHotbar,REORDER_THE_HOTBAR,ItemCondition_KingEJ,qdx_item_condition,TheStar,HeartHealthMeter,TienCustomizableLeftSidebar
 loadModAfter=MinimalSidebar,MinimalHotbar

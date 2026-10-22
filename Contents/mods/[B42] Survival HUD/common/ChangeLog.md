@@ -1,3 +1,8 @@
+# 1.3.3
+**TECHNICAL**
+- UI textures have been packed into the `.pack` format to prevent distortion when the texture compression option is enabled.
+- Added compatibility with [Minimal Sidebar](https://steamcommunity.com/sharedfiles/filedetails/?id=3642084851) & [Minimal Hotbar](https://steamcommunity.com/sharedfiles/filedetails/?id=3688576740).
+
 # 1.3.2
 **FIXES**
 - Fixed an item remaining visible in its hotbar slot after being dropped.
