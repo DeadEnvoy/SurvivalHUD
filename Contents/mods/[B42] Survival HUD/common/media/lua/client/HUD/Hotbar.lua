@@ -216,7 +216,7 @@ local function getPulseFactor()
     return 0.75 - 0.25 * math.cos(progress * (math.pi * 2));
 end
 
-local function drawConditionOverlay(self, x, item, texValCache, cacheKey, kind, includeOffState, isEquipped)
+local function drawConditionOverlay(self, x, item, texValCache, cacheKey, kind, includeOffState, isEquipped, alpha)
     local val, tintR, tintG, tintB, overlayAlpha = getItemConditionPercent(item, includeOffState);
     if not val then return; end
     val = math.max(0, math.min(100, val));
@@ -227,7 +227,7 @@ local function drawConditionOverlay(self, x, item, texValCache, cacheKey, kind, 
         if isEquipped and instanceof(item, "HandWeapon") and item:isJammed() then
             overlayAlpha = overlayAlpha * getPulseFactor();
         end
-        self:drawTexture(conTex, x, HOTBAR_MARGIN, overlayAlpha, tintR, tintG, tintB);
+        self:drawTexture(conTex, x, HOTBAR_MARGIN, overlayAlpha * alpha, tintR, tintG, tintB);
     end
 end
 
@@ -264,27 +264,27 @@ local function getAmmoDisplayText(item)
     return tostring(item:getCurrentAmmoCount()), false;
 end
 
-local function drawSlotLabel(self, x, size, text, customColor)
+local function drawSlotLabel(self, x, size, text, customColor, alpha)
     local fontHgt = getTextManager():getFontHeight(UIFont.Small);
     local textWid = getTextManager():MeasureStringX(UIFont.Small, text);
     local labelX = x + math.floor((size - textWid) / 2);
-    self:drawRect(labelX - 2, -fontHgt, textWid + 4, fontHgt, 0.6, 0, 0, 0);
+    self:drawRect(labelX - 2, -fontHgt, textWid + 4, fontHgt, 0.6 * alpha, 0, 0, 0);
     local col = customColor or self.textColor;
-    self:drawText(text, labelX, -fontHgt, col.r, col.g, col.b, col.a, UIFont.Small);
+    self:drawText(text, labelX, -fontHgt, col.r, col.g, col.b, (col.a or 1) * alpha, UIFont.Small);
 end
 
-local function drawItemIcon(self, x, item, isEquipped)
+local function drawItemIcon(self, x, item, isEquipped, alpha)
     local tex = item:getTexture();
     if not tex then return; end
     local w, h, isScaled = getItemDrawDimensions(tex);
     local ix = x + math.floor((self.slotSize - w) / 2);
     local iy = HOTBAR_MARGIN + math.floor((self.slotSize - h) / 2);
-    local iconAlpha = 1.0;
-    local shadowAlpha = 0.25;
+    local iconAlpha = alpha;
+    local shadowAlpha = 0.25 * alpha;
     if isEquipped and instanceof(item, "HandWeapon") and (item:isBroken() or item:getCondition() <= 0) then
         local pulse = getPulseFactor();
-        iconAlpha = pulse;
-        shadowAlpha = 0.25 * pulse;
+        iconAlpha = iconAlpha * pulse;
+        shadowAlpha = shadowAlpha * pulse;
     end
     if isScaled then
         self:drawTextureScaled(tex, ix + 1, iy + 1, w, h, shadowAlpha, 0, 0, 0);
@@ -295,46 +295,46 @@ local function drawItemIcon(self, x, item, isEquipped)
     end
 end
 
-local function drawHandSlot(self, x, item, isSelected, isHovered, isPrimary)
+local function drawHandSlot(self, x, item, isSelected, isHovered, isPrimary, alpha)
     local bg = getHandTexture(self.slotSize, "Hand_Background");
     local inHotbar = item and self:isInHotbar(item);
     local showSelected = isSelected and not inHotbar;
-    local alpha = showSelected and 1.0 or 0.75;
+    local bgAlpha = (showSelected and 1.0 or 0.75) * alpha;
 
     if bg then
-        self:drawTexture(bg, x, HOTBAR_MARGIN, alpha, 1, 1, 1);
+        self:drawTexture(bg, x, HOTBAR_MARGIN, bgAlpha, 1, 1, 1);
     end
 
     if showSelected and item then
-        drawConditionOverlay(self, x, item, self.handTexVal, isPrimary and "primary" or "secondary", "Hand", true, true);
+        drawConditionOverlay(self, x, item, self.handTexVal, isPrimary and "primary" or "secondary", "Hand", true, true, alpha);
     end
 
     if showSelected then
         local selTex = getHandTexture(self.slotSize, "Hand_Selected");
         if selTex then
-            self:drawTexture(selTex, x, HOTBAR_MARGIN, 1, 1, 1, 1);
+            self:drawTexture(selTex, x, HOTBAR_MARGIN, alpha, 1, 1, 1);
         end
     end
 
     if isHovered then
         local hoverTex = getHandTexture(self.slotSize, "Hand_Hover");
         if hoverTex then
-            self:drawTexture(hoverTex, x, HOTBAR_MARGIN, 0.25, 1, 1, 1);
+            self:drawTexture(hoverTex, x, HOTBAR_MARGIN, 0.25 * alpha, 1, 1, 1);
         end
-        drawSlotLabel(self, x, self.slotSize, isPrimary and getText("IGUI_PrimaryTooltip") or getText("IGUI_SecondaryTooltip"));
+        drawSlotLabel(self, x, self.slotSize, isPrimary and getText("IGUI_PrimaryTooltip") or getText("IGUI_SecondaryTooltip"), nil, alpha);
     elseif showSelected and item then
         local ammoText, isJammed = getAmmoDisplayText(item);
         if ammoText then
-            drawSlotLabel(self, x, self.slotSize, ammoText, isJammed and JAMMED_TEXT_COLOR);
+            drawSlotLabel(self, x, self.slotSize, ammoText, isJammed and JAMMED_TEXT_COLOR, alpha);
         end
     end
 
     if item then
-        drawItemIcon(self, x, item, showSelected);
+        drawItemIcon(self, x, item, showSelected, alpha);
     end
 end
 
-local function drawSeparator(self, x)
+local function drawSeparator(self, x, alpha)
     local sepSize = Utils.SeparatorConfig[self.slotSize];
     local sepTotalW = getSepSize(self.slotSize);
     local lineInset = math.floor(4 * self.slotSize / 64 + 0.5);
@@ -343,11 +343,11 @@ local function drawSeparator(self, x)
         if sep then
             local sx = x + math.floor((sepTotalW - sepSize) / 2);
             local sy = HOTBAR_MARGIN + math.floor((self.slotSize - sepSize) / 2);
-            self:drawTexture(sep, sx, sy, 0.5, 1, 1, 1);
+            self:drawTexture(sep, sx, sy, 0.5 * alpha, 1, 1, 1);
             return;
         end
     end
-    self:drawRect(x + math.floor(sepTotalW / 2), HOTBAR_MARGIN + lineInset, 1, self.slotSize - lineInset * 2, 0.4, 1, 1, 1);
+    self:drawRect(x + math.floor(sepTotalW / 2), HOTBAR_MARGIN + lineInset, 1, self.slotSize - lineInset * 2, 0.4 * alpha, 1, 1, 1);
 end
 
 local function isMouseOverNotBlocked(self)
@@ -430,14 +430,19 @@ local function resetDragCandidate()
     ISHotbar.dragCandidatePlayer = nil;
 end
 
-function ISHotbar:prerender()
+Functions.PostHook.Add(ISHotbar, "prerender", function(self)
     self.backgroundColor = { r = 0, g = 0, b = 0, a = 0 };
     self.borderColor = { r = 0, g = 0, b = 0, a = 0 };
-end
+end)
 
 function ISHotbar:render()
     if (self.playerNum > 0) or JoypadState.players[self.playerNum + 1] then
         self:setVisible(false);
+    end
+
+    local alpha = self.mhAlpha or 1.0;
+    if alpha <= 0.001 then
+        return;
     end
 
     local chr = self.character;
@@ -458,31 +463,31 @@ function ISHotbar:render()
 
     local bg = getSlotTexture(self.slotSize, "Slot_Background");
 
-    drawHandSlot(self, 0, secondaryItem, secondaryItem ~= nil, hoveredHand == -2, false);
-    drawSeparator(self, self.slotSize);
+    drawHandSlot(self, 0, secondaryItem, secondaryItem ~= nil, hoveredHand == -2, false, alpha);
+    drawSeparator(self, self.slotSize, alpha);
     local slotX = self.slotSize + getSepSize(self.slotSize);
 
     for i, slot in pairs(self.availableSlot) do
         local item = self.attachedItems[i];
         local isSelected = item and item:isEquipped();
-        local bgAlpha = isSelected and 1.0 or 0.75;
+        local bgAlpha = (isSelected and 1.0 or 0.75) * alpha;
 
         if bg then
             self:drawTexture(bg, slotX, HOTBAR_MARGIN, bgAlpha, 1, 1, 1);
         end
 
         if isSelected then
-            drawConditionOverlay(self, slotX, item, self.slotTexVal, i, "Slot", true, true);
+            drawConditionOverlay(self, slotX, item, self.slotTexVal, i, "Slot", true, true, alpha);
             local selTex = getSlotTexture(self.slotSize, "Slot_Selected");
             if selTex then
-                self:drawTexture(selTex, slotX, HOTBAR_MARGIN, 1, 1, 1, 1);
+                self:drawTexture(selTex, slotX, HOTBAR_MARGIN, alpha, 1, 1, 1);
             end
         elseif item and item:canBeActivated() then
-            drawConditionOverlay(self, slotX, item, self.slotTexVal, i, "Slot", false, false);
+            drawConditionOverlay(self, slotX, item, self.slotTexVal, i, "Slot", false, false, alpha);
             if item:isActivated() then
                 local selTex = getSlotTexture(self.slotSize, "Slot_Selected");
                 if selTex then
-                    self:drawTexture(selTex, slotX, HOTBAR_MARGIN, 1, 1, 1, 1);
+                    self:drawTexture(selTex, slotX, HOTBAR_MARGIN, alpha, 1, 1, 1);
                 end
             end
         end
@@ -490,8 +495,8 @@ function ISHotbar:render()
         local indexInsetX = math.floor(8 * self.slotSize / 64 + 0.5);
         local indexInsetY = math.floor(5 * self.slotSize / 64 + 0.5);
         local indexFont = self.slotSize >= 80 and UIFont.Medium or UIFont.Small;
-        self:drawText(tostring(i), slotX + indexInsetX + 1, HOTBAR_MARGIN + indexInsetY + 1, 0, 0, 0, 0.75, indexFont);
-        self:drawText(tostring(i), slotX + indexInsetX, HOTBAR_MARGIN + indexInsetY, self.textColor.r, self.textColor.g, self.textColor.b, self.textColor.a, indexFont);
+        self:drawText(tostring(i), slotX + indexInsetX + 1, HOTBAR_MARGIN + indexInsetY + 1, 0, 0, 0, 0.75 * alpha, indexFont);
+        self:drawText(tostring(i), slotX + indexInsetX, HOTBAR_MARGIN + indexInsetY, self.textColor.r, self.textColor.g, self.textColor.b, (self.textColor.a or 1) * alpha, indexFont);
 
         if i == mouseOverSlotIndex then
             local r, g, b = 1, 1, 1;
@@ -501,27 +506,27 @@ function ISHotbar:render()
                 end
             end
             local highlightInset = math.floor(4 * self.slotSize / 64 + 0.5);
-            self:drawRect(slotX + highlightInset, HOTBAR_MARGIN + highlightInset, self.slotSize - highlightInset * 2, self.slotSize - highlightInset * 2, 0.25, r, g, b);
+            self:drawRect(slotX + highlightInset, HOTBAR_MARGIN + highlightInset, self.slotSize - highlightInset * 2, self.slotSize - highlightInset * 2, 0.25 * alpha, r, g, b);
 
-            drawSlotLabel(self, slotX, self.slotSize, getTextOrNull("IGUI_HotbarAttachment_" .. slot.slotType) or slot.name);
+            drawSlotLabel(self, slotX, self.slotSize, getTextOrNull("IGUI_HotbarAttachment_" .. slot.slotType) or slot.name, nil, alpha);
         elseif isSelected and item then
             local ammoText, isJammed = getAmmoDisplayText(item);
             if ammoText then
-                drawSlotLabel(self, slotX, self.slotSize, ammoText, isJammed and JAMMED_TEXT_COLOR);
+                drawSlotLabel(self, slotX, self.slotSize, ammoText, isJammed and JAMMED_TEXT_COLOR, alpha);
             end
         end
 
         if item then
-            drawItemIcon(self, slotX, item, isSelected);
+            drawItemIcon(self, slotX, item, isSelected, alpha);
         elseif slot.texture then
             local st = slot.texture;
             local w, h, isScaled = getItemDrawDimensions(st);
             local ix = slotX + math.floor((self.slotSize - w) / 2);
             local iy = HOTBAR_MARGIN + math.floor((self.slotSize - h) / 2);
             if isScaled then
-                self:drawTextureScaled(st, ix, iy, w, h, 0.25, 1, 1, 1);
+                self:drawTextureScaled(st, ix, iy, w, h, 0.25 * alpha, 1, 1, 1);
             else
-                self:drawTexture(st, ix, iy, 0.25, 1, 1, 1);
+                self:drawTexture(st, ix, iy, 0.25 * alpha, 1, 1, 1);
             end
         end
 
@@ -529,10 +534,10 @@ function ISHotbar:render()
     end
 
     local rightSepX = slotX - getHotbarPad(self.slotSize);
-    drawSeparator(self, rightSepX);
+    drawSeparator(self, rightSepX, alpha);
 
     local rightHandX = rightSepX + getSepSize(self.slotSize);
-    drawHandSlot(self, rightHandX, primaryItem, primaryItem ~= nil, hoveredHand == -3, true);
+    drawHandSlot(self, rightHandX, primaryItem, primaryItem ~= nil, hoveredHand == -3, true, alpha);
 end
 
 function ISHotbar:setSizeAndPosition()
